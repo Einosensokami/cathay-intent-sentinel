@@ -1,7 +1,30 @@
-node_modules
-dist
+# Dependencies
+node_modules/
+package-lock.json.bak
+
+# Build outputs & caches
+dist/
 *.tsbuildinfo
-.DS_Store
+.tscache/
+
+# Environment & Sensitive keys
+.env
+.env.*
+*.pem
+*.key
+*.secret
+id_rsa*
 *.log
+
+# Operating System & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Temporary Codex prompts & worker scratch files
 prompt*.txt
 worker*.txt
+decision_prompt.txt
+grill_prompt.txt
+*_prompt.txt

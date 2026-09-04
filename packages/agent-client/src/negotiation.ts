@@ -139,6 +139,7 @@ const NEGOTIATION_COMMITMENT_TYPES = {
 } as const;
 
 export { NEGOTIATION_MESSAGE_TYPES, NEGOTIATION_COMMITMENT_TYPES };
+export const NEGOTIATION_TYPES = NEGOTIATION_MESSAGE_TYPES;
 
 export interface A2ANegotiatorOptions {
   buyer: NegotiationSigner;
@@ -300,12 +301,13 @@ export class A2ANegotiator {
     const ceiling = atomic(input.buyerCeiling, "buyerCeiling");
     const floor = atomic(input.sellerFloor, "sellerFloor");
     const listTotal = listUnit * quantity;
+    if (listUnit <= 0n) throw new Error("listUnitPrice must be positive");
     const discountBps = input.volumeDiscountBps ?? 0;
     if (!Number.isSafeInteger(discountBps) || discountBps < 0 || discountBps > 10_000) throw new Error("volumeDiscountBps must be between 0 and 10000");
     if (ceiling < floor) throw new Error("buyer ceiling is below seller floor");
     if (floor > listTotal) throw new Error("seller floor exceeds the advertised total");
-    if (!input.sessionId?.trim()) input.sessionId = `negotiation_${Date.now().toString(36)}`;
-    if (input.validUntil <= this.clock()) throw new Error("negotiation has expired");
+    const sessionId = input.sessionId?.trim() || `negotiation_${Date.now().toString(36)}`;
+    if (!Number.isSafeInteger(input.validUntil) || input.validUntil <= this.clock()) throw new Error("negotiation has expired");
     if (input.sla.deliverBy > input.validUntil || input.sla.availabilityBps < 0 || input.sla.availabilityBps > 10_000) throw new Error("invalid SLA bounds");
     atomic(input.sla.stakeRequired, "sla.stakeRequired");
     bytes32(input.resourceHash, "resourceHash");
@@ -318,7 +320,6 @@ export class A2ANegotiator {
     if (openingTotal < floor) {
       if (floor > ceiling) throw new Error("seller floor exceeds buyer ceiling");
     }
-    const sessionId = input.sessionId;
     const base: NegotiatedTerms = {
       sessionId,
       buyerAgentId: input.buyerAgentId,
@@ -364,16 +365,16 @@ export class A2ANegotiator {
     const resultWithoutCommitment = { sessionId, messages, accepted, originalTotal: listTotal.toString(), savings: (listTotal - BigInt(accepted.totalPrice)).toString(), savingsBps: Number(((listTotal - BigInt(accepted.totalPrice)) * 10_000n) / listTotal), transcriptHash };
     const commitment: NegotiationCommitment = { terms: accepted, transcriptHash, buyerAddress: this.options.buyer.address, sellerAddress: this.options.seller.address, buyerSignature: buyerSignature as Hex, sellerSignature: sellerSignature as Hex, commitmentHash: typedCommitmentHash(resultWithoutCommitment, this.domain) };
     const result: NegotiationResult = { ...resultWithoutCommitment, commitment };
-    if (!(await verifyNegotiationCommitment(result, this.domain))) throw new Error("generated negotiation commitment failed verification");
+    if (!(await verifyNegotiationCommitment(result, this.domain, this.clock()))) throw new Error("generated negotiation commitment failed verification");
     return result;
   }
 
   public verify(result: NegotiationResult): Promise<boolean> {
-    return verifyNegotiationCommitment(result, this.domain);
+    return verifyNegotiationCommitment(result, this.domain, this.clock());
   }
 }
 
-export async function verifyNegotiationCommitment(result: Pick<NegotiationResult, "messages" | "accepted" | "transcriptHash" | "commitment">, domain: NegotiationDomain = { name: "IntentSentinel Negotiation", version: "1", chainId: 84532 }): Promise<boolean> {
+export async function verifyNegotiationCommitment(result: Pick<NegotiationResult, "messages" | "accepted" | "transcriptHash" | "commitment">, domain: NegotiationDomain = { name: "IntentSentinel Negotiation", version: "1", chainId: 84532 }, now = Math.floor(Date.now() / 1000)): Promise<boolean> {
   try {
     if (!result.messages.length || result.messages.length > 3) return false;
     const first = result.messages[0];
@@ -383,7 +384,7 @@ export async function verifyNegotiationCommitment(result: Pick<NegotiationResult
     let transcriptHash = ZERO_HASH;
     for (const [index, message] of result.messages.entries()) {
       if (message.round !== index + 1 || message.previousMessageHash !== previousHash) return false;
-      if (message.validUntil <= Math.floor(Date.now() / 1000)) return false;
+      if (message.validUntil <= now) return false;
       bytes32(message.resourceHash, "resourceHash");
       bytes32(message.previousMessageHash, "previousMessageHash");
       atomic(message.quantity, "quantity"); atomic(message.unitPrice, "unitPrice"); atomic(message.totalPrice, "totalPrice");

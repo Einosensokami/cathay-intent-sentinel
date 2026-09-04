@@ -351,16 +351,26 @@ export class Erc8004TrustRegistry implements TrustRegistry {
 
   private async fallbackOrDeny(address: string, merchantUrl: string, reason: string, agentId?: string): Promise<Erc8004TrustDecision> {
     if (this.options.fallback && this.options.fallbackOnError !== false) {
-      const fallback = await this.options.fallback.verifyMerchant(address, merchantUrl);
+      const fallback = this.options.fallback instanceof Erc8004TrustRegistry
+        ? await this.options.fallback.verifyAgent(address, merchantUrl)
+        : await this.options.fallback.verifyMerchant(address, merchantUrl);
+      const fallbackReputation = fallback.reputation;
+      const reputation: MerchantReputation = fallbackReputation && "successful_settlements" in fallbackReputation
+        ? fallbackReputation
+        : { score: fallbackReputation?.score ?? 0, successful_settlements: fallbackReputation?.successfulTasks ?? 0, disputes: fallbackReputation?.disputedTasks ?? 0, last_updated: fallbackReputation?.lastUpdated ?? 0 };
+      const fallbackIdentity = fallback.identity;
+      const identity: MerchantIdentity | undefined = fallbackIdentity && "merchant_url" in fallbackIdentity
+        ? fallbackIdentity
+        : fallbackIdentity ? { address: fallbackIdentity.walletAddress, merchant_url: fallbackIdentity.serviceEndpoint, ...(fallbackIdentity.name ? { name: fallbackIdentity.name } : {}), registered_at: fallbackIdentity.registeredAt } : undefined;
       return {
-        ...fallback,
         verified: fallback.verified,
         reason: `Live ERC-8004 verification unavailable; explicit fallback used: ${fallback.reason}`,
+        ...(identity ? { identity } : {}),
+        reputation,
         source: "fallback",
         agent_id: agentId ?? "unknown",
         payee_bound: fallback.verified,
         identity_active: fallback.verified,
-        reputation: fallback.reputation ?? { score: 0, successful_settlements: 0, disputes: 0, last_updated: 0 },
       };
     }
     return {

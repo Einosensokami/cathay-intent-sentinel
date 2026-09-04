@@ -99,6 +99,8 @@ function sanitize(value: unknown, key = ""): unknown {
 
 function attackType(input: InterceptedOwaspViolation): ThreatAttackType {
   const text = [input.attackType, input.type, input.owasp, input.code, input.message].filter(Boolean).join(" ").toLowerCase();
+  if (text.includes("asi02")) return "homograph_hijack";
+  if (text.includes("asi03")) return "micro_drain";
   if (text.includes("homograph") || text.includes("hijack") || text.includes("spoof") || text.includes("domain")) return "homograph_hijack";
   if (text.includes("micro") || text.includes("drain") || text.includes("velocity") || text.includes("budget")) return "micro_drain";
   return "prompt_injection";

@@ -174,6 +174,7 @@ async function main() {
   };
 
   const paymentPayload = await signer.signPayment(intent, req);
+  cfo.publish({ correlationId, mode: demoMode, type: "payment.signed", payload: { message: "Scoped ERC-3009 authorization signed once", amount: req.amount } });
   const submitTxHash = verifiedHash ?? `mock:${randomUUID()}`;
   const explorerUrl = basescanUrl(submitTxHash, BASE_SEPOLIA, Boolean(verifiedHash));
 
@@ -204,11 +205,13 @@ async function main() {
     paymentPayload,
     paymentRequirements: req,
   });
+  cfo.publish({ correlationId, mode: demoMode, type: "payment.submitted", payload: { message: verifiedHash ? "Base Sepolia transaction submitted" : "Simulated settlement submitted", amount: req.amount, txHash: submitTxHash, verified: Boolean(verifiedHash), receiptVerified: Boolean(verifiedHash), ...(explorerUrl ? { explorerUrl } : {}) } });
   cfo.publish({ correlationId, mode: demoMode, type: "payment.confirmed", payload: { message: verifiedHash ? "Base Sepolia receipt verified" : "Simulated receipt recorded", amount: negotiationResult.accepted.totalPrice, txHash: submitTxHash, verified: Boolean(verifiedHash), receiptVerified: Boolean(verifiedHash), ...(explorerUrl ? { explorerUrl } : {}), engines: ["policy-engine", "facilitator"] } });
   cfo.publish({ correlationId, mode: demoMode, type: "budget.committed", payload: { message: "Budget committed after settlement", amount: negotiationResult.accepted.totalPrice } });
+  cfo.publish({ correlationId, mode: demoMode, type: "security.scan_completed", payload: { message: "Threat intelligence clear; no custody-field mutation" } });
 
   console.log(`🎉 Settlement Success: ${settleResult.ok ? "TRUE (200 OK)" : "FALSE"}`);
-  console.log(`🔗 Basescan Tx URL:   ${settleResult.record.explorerUrl ?? explorerUrl}`);
+  console.log(`🔗 Basescan Tx URL:   ${settleResult.record.explorerUrl ?? explorerUrl ?? "withheld (mock receipt)"}`);
 
   // 7. Render CFO Live Console
   const state: DashboardState = {
@@ -225,7 +228,7 @@ async function main() {
     spent: 30000n,
     budget: 100000n,
     alerts: [
-      { severity: "info", message: `A2A discount 40% · ERC-8004 passed (98/100) · Basescan: ${submitTxHash.slice(0, 16)}...` },
+      { severity: "info", message: verifiedHash ? `A2A discount 40% · ERC-8004 passed (98/100) · Basescan: ${explorerUrl}` : "A2A discount 40% · ERC-8004 passed (98/100) · mock receipt; explorer link withheld" },
     ],
   };
   console.log("\n[LIVE CFO CONSOLE]");
