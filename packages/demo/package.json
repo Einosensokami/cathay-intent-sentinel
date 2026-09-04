@@ -1,0 +1,17 @@
+{
+  "name": "@intent-sentinel/demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/01_legitimate_flow.js",
+  "types": "dist/dashboard.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "legitimate": "node dist/01_legitimate_flow.js",
+    "prompt-injection": "node dist/02_prompt_injection_blocked.js",
+    "streaming": "node dist/03_streaming_upto_flow.js"
+  },
+  "dependencies": {
+    "@intent-sentinel/agent-client": "0.1.0"
+  }
+}

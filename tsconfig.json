@@ -1,0 +1,11 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/core" },
+    { "path": "./packages/key-vault" },
+    { "path": "./packages/policy-engine" },
+    { "path": "./packages/facilitator" },
+    { "path": "./packages/agent-client" },
+    { "path": "./packages/demo" }
+  ]
+}

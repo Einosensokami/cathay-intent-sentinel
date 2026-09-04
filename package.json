@@ -1,0 +1,20 @@
+{
+  "name": "@cathay/intent-sentinel",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "tsx --test",
+    "typecheck": "tsc -b --pretty false",
+    "demo:legitimate": "npm --workspace @intent-sentinel/demo run legitimate",
+    "demo:prompt-injection": "npm --workspace @intent-sentinel/demo run prompt-injection",
+    "demo:streaming": "npm --workspace @intent-sentinel/demo run streaming"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.2"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "@intent-sentinel/policy-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "dependencies": { "@cathay/intent-sentinel-core": "0.1.0", "ethers": "^6.13.5" }
+}
