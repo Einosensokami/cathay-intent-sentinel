@@ -1,4 +1,5 @@
 export type ApiEventTransport = "sse" | "websocket" | "polling" | "none";
+import type { CustomIntentInput, PolicyConfig } from "../types";
 
 export interface ApiClientConfig {
   baseUrl?: string;
@@ -24,7 +25,13 @@ export interface VerifyRequest {
     scenario: "legitimate" | "attack" | "negotiation";
     resource: string;
     amount: string;
-  };
+  } | CustomIntentInput;
+  policyConfig?: PolicyConfig;
+}
+
+export interface CustomIntentRequest {
+  intent: CustomIntentInput;
+  policyConfig?: PolicyConfig;
 }
 
 export interface VerifyResponse {
@@ -165,6 +172,12 @@ export function createApiClient(config: ApiClientConfig = {}) {
     },
     verify(body: VerifyRequest, context?: Partial<RequestContext>) {
       return request<VerifyResponse>("/verify", { method: "POST", body: JSON.stringify(body) }, context);
+    },
+    evaluateCustomIntent(body: CustomIntentRequest, context?: Partial<RequestContext>) {
+      return request<VerifyResponse>("/intents/evaluate", { method: "POST", body: JSON.stringify(body) }, context);
+    },
+    runCustomIntent(body: CustomIntentRequest, context?: Partial<RequestContext>) {
+      return request<VerifyResponse>("/intents/evaluate", { method: "POST", body: JSON.stringify(body) }, context);
     },
     settle(body: SettleRequest, context?: Partial<RequestContext>) {
       const requestContext = context ?? {};
