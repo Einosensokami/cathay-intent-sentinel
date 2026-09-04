@@ -25,6 +25,7 @@ Thumbs.db
 # Temporary Codex prompts & worker scratch files
 prompt*.txt
 worker*.txt
+*prompt*.txt
 decision_prompt.txt
 grill_prompt.txt
 *_prompt.txt
