@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'productization/**']
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build all workspaces
+        run: npm run build
+      - name: Run all tests
+        run: npm test
+      - name: Frontend typecheck
+        run: npm run typecheck --workspace=@cathay/intent-sentinel-frontend
+      - name: Frontend production build
+        run: npm run build --workspace=@cathay/intent-sentinel-frontend
+
+  diff-and-secrets:
+    name: Diff and secret scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check whitespace errors
+        run: git diff --check "${{ github.event.pull_request.base.sha || github.event.before }}" "${{ github.sha }}"
+      - name: Scan repository and changed content for secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: detect --redact --no-banner --source .
