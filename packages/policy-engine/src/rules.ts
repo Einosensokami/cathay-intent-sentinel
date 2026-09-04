@@ -195,3 +195,5 @@ export class ConfigurablePolicyRules {
 }
 
 export type PolicyRules = ConfigurablePolicyRules;
+export type SecurityPolicy = PolicyConfig;
+export const createPolicyRules = (config: PolicyConfig): ConfigurablePolicyRules => new ConfigurablePolicyRules(config);

@@ -13,6 +13,12 @@ function json(response: ServerResponse, status: number, body: unknown): void {
   response.end(encoded);
 }
 
+function wireVerifyResponse(result: Awaited<ReturnType<typeof verifyPayment>>): Record<string, unknown> {
+  return result.ok
+    ? { isValid: true, ...(result.payer ? { payer: result.payer } : {}), ...(result.amount ? { amount: result.amount } : {}) }
+    : { isValid: false, invalidReason: result.error?.message ?? "Payment verification failed", ...(result.error ? { errorCode: result.error.code } : {}) };
+}
+
 async function body(request: IncomingMessage): Promise<unknown> {
   let bytes = 0;
   const chunks: Buffer[] = [];
@@ -47,7 +53,7 @@ export async function handleFacilitatorRequest(request: IncomingMessage, respons
   }
   if (request.url === "/verify") {
     const result = await verifyPayment(parsed as unknown as VerifyRequest, facilitator.optionsForVerification);
-    json(response, 200, result);
+    json(response, 200, wireVerifyResponse(result));
     return;
   }
   const idempotencyKey = typeof parsed.idempotency_key === "string" ? parsed.idempotency_key : request.headers["idempotency-key"];
@@ -56,7 +62,11 @@ export async function handleFacilitatorRequest(request: IncomingMessage, respons
     return;
   }
   const result = await facilitator.settle({ ...parsed, idempotency_key: idempotencyKey } as unknown as SettleRequest);
-  json(response, result.status === "unknown" ? 202 : result.ok ? 200 : 409, result);
+  const requirements = (parsed.paymentRequirements ?? parsed.requirements) as { network?: string } | undefined;
+  const wire = result.ok
+    ? { success: true, transaction: result.record.txHash ?? "", network: requirements?.network ?? "unknown", ...(result.record.payer ? { payer: result.record.payer } : {}) }
+    : { success: false, errorReason: result.record.error ?? "Settlement failed", transaction: result.record.txHash ?? "", network: requirements?.network ?? "unknown", ...(result.record.payer ? { payer: result.record.payer } : {}) };
+  json(response, result.status === "unknown" ? 202 : result.ok ? 200 : 409, wire);
 }
 
 export function createFacilitatorServer(options: FacilitatorHttpOptions): Server {

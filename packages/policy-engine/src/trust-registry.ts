@@ -71,3 +71,4 @@ export class InMemoryTrustRegistry implements TrustRegistry {
 }
 
 export const MockTrustRegistry = InMemoryTrustRegistry;
+export const ERC8004TrustRegistry = InMemoryTrustRegistry;
