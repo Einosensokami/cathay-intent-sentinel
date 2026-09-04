@@ -1,223 +1,52 @@
-import React from "react";
-import { Bot, Zap, ShieldAlert, Handshake, Terminal, CheckCircle2, XCircle, ArrowRight, Shield } from "lucide-react";
-import { PipelineStep, ScenarioId } from "../engine/types";
+import { ArrowRight, Bot, CircleDollarSign, FileSearch, Handshake, OctagonX, Play, Sparkles } from "lucide-react";
+import type { PipelineStep, RunState, Scenario } from "../types";
+import { Pipeline } from "./Pipeline";
 
-interface LeftPanelProps {
-  activeScenario: ScenarioId | null;
-  isRunning: boolean;
-  pipeline: PipelineStep[];
-  logs: Array<{ time: string; text: string; type: "info" | "success" | "error" | "warn" }>;
-  onRunScenario: (scenario: ScenarioId) => void;
+export interface LeftPanelProps { runState: RunState; activeScenario: Scenario | null; steps: PipelineStep[]; onRun: (scenario: Scenario) => void; }
+
+const actions = [
+  { scenario: "legitimate" as const, icon: Play, title: "Run legitimate purchase", meta: "0.01 USDC", className: "action-primary" },
+  { scenario: "attack" as const, icon: OctagonX, title: "Simulate prompt injection", meta: "500 USDC", className: "action-danger" },
+  { scenario: "negotiation" as const, icon: Handshake, title: "Simulate A2A negotiation", meta: "40% discount", className: "action-neutral" },
+];
+
+export function LeftPanel({ runState, activeScenario, steps, onRun }: LeftPanelProps) {
+  const busy = runState === "running";
+  return (
+    <section className="space-y-4" aria-labelledby="workflow-heading">
+      <div className="flex items-end justify-between"><div><p className="section-kicker">01 / Agent execution</p><h2 id="workflow-heading" className="mt-1 text-lg font-semibold tracking-tight text-white">Autonomous workflow</h2></div><div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald"><span className="live-dot bg-emerald" /> Agent online</div></div>
+      <article className="panel-card relative overflow-hidden p-5">
+        <div className="absolute right-0 top-0 h-28 w-28 rounded-full bg-cathay/10 blur-3xl" />
+        <div className="relative flex items-start gap-4">
+          <div className="rounded-xl border border-cathay/25 bg-cathay/10 p-3 text-emerald"><Bot size={22} /></div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2"><span className="tag tag--active"><Sparkles size={10} /> Active task</span><span className="font-mono text-[10px] text-slate-600">TASK-Q3-092</span></div>
+            <h3 className="mt-3 text-base font-semibold leading-snug text-white">Enterprise Q3 Financial Intel Collection</h3>
+            <p className="mt-2 text-xs leading-5 text-slate-400">Autonomously source verified market intelligence while enforcing treasury policy at every spend boundary.</p>
+            <div className="mt-4 grid grid-cols-3 gap-2 border-t border-line/70 pt-4"><Metric label="Agent" value="Treasury-07" /><Metric label="Task cap" value="1.00 USDC" /><Metric label="Expires" value="in 18m" /></div>
+          </div>
+        </div>
+      </article>
+      <article className="challenge-card">
+        <div className="flex items-center justify-between border-b border-amber-400/15 px-5 py-3.5">
+          <div className="flex items-center gap-2.5"><span className="grid h-7 w-7 place-items-center rounded-lg bg-amber-400/10 text-amber-300"><CircleDollarSign size={16} /></span><div><p className="text-xs font-semibold text-amber-100">402 Payment Required</p><p className="font-mono text-[9px] text-amber-300/50">challenge intercepted · awaiting policy</p></div></div>
+          <span className="rounded border border-amber-400/20 px-2 py-1 font-mono text-[9px] text-amber-300">HTTP 402</span>
+        </div>
+        <dl className="grid gap-3 px-5 py-4 text-xs sm:grid-cols-[1fr_auto]">
+          <div><dt className="micro-label">Resource</dt><dd className="mt-1 flex items-center gap-2 font-mono text-[11px] text-slate-300"><FileSearch size={13} className="text-slate-500" /> /v1/market-intel/q3</dd></div>
+          <div className="sm:text-right"><dt className="micro-label">Amount</dt><dd className="mt-1 font-mono text-sm font-medium text-white">0.01 USDC</dd></div>
+          <div className="sm:col-span-2"><dt className="micro-label">Verified payee</dt><dd className="mt-1 flex min-w-0 items-center gap-2 font-mono text-[11px] text-slate-300"><span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald" /><span className="truncate">0x7A8e...91C2 · AlphaSense MCP</span></dd></div>
+        </dl>
+      </article>
+      <div className="space-y-2.5">
+        {actions.map(({ scenario, icon: Icon, title, meta, className }) => {
+          const isActive = busy && activeScenario === scenario;
+          return <button key={scenario} type="button" className={`action-button ${className}`} disabled={busy} onClick={() => onRun(scenario)}><span className="flex min-w-0 items-center gap-3"><span className="action-icon"><Icon size={17} /></span><span className="truncate text-sm font-semibold">{isActive ? "Running policy checks…" : title}</span></span><span className="flex shrink-0 items-center gap-2 font-mono text-[10px] opacity-70">{meta}<ArrowRight size={14} /></span></button>;
+        })}
+      </div>
+      <Pipeline steps={steps} />
+    </section>
+  );
 }
 
-export const LeftPanel: React.FC<LeftPanelProps> = ({
-  activeScenario,
-  isRunning,
-  pipeline,
-  logs,
-  onRunScenario,
-}) => {
-  return (
-    <div className="flex flex-col gap-5">
-      
-      {/* Panel Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400">
-            <Bot className="w-5 h-5" />
-          </div>
-          <div>
-            <h2 className="text-sm font-bold text-white uppercase tracking-wider">
-              自主 AI 代理人工作區 (Agent Workspace)
-            </h2>
-            <p className="text-xs text-slate-400">
-              大模型推理層 · 零私鑰隔離環境 (Zero-Key Custody)
-            </p>
-          </div>
-        </div>
-        <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-blue-950/60 text-blue-300 border border-blue-600/30">
-          代理人 ID: research-agent-01
-        </span>
-      </div>
-
-      {/* Active Task Card */}
-      <div className="p-4 rounded-xl bg-cyber-card border border-cyber-border/80 shadow-md">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-            當前執行任務目標 (Active Mission)
-          </span>
-          <span className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-400">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            自主執行中 (Autonomous)
-          </span>
-        </div>
-        <p className="text-sm font-semibold text-slate-200">
-          「自動從外部付費驗證 API 聚合 Q3 半導體市場情報研報」
-        </p>
-        <div className="mt-3 pt-3 border-t border-cyber-border/60 flex items-center justify-between text-xs font-mono text-slate-400">
-          <span>目標端點：<strong className="text-slate-300 font-normal">api.cathay-verified.com</strong></span>
-          <span>意圖授權上限：<strong className="text-emerald-400">0.05 USDC</strong></span>
-        </div>
-      </div>
-
-      {/* Interactive Trigger Buttons */}
-      <div className="flex flex-col gap-2.5">
-        <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-          <Zap className="w-3.5 h-3.5 text-cathay-emerald" />
-          黑客松現場一鍵實機演示 (Interactive Live Scenarios)
-        </span>
-
-        <div className="grid grid-cols-1 gap-2.5">
-          
-          {/* Button 1: Normal Purchase */}
-          <button
-            onClick={() => onRunScenario("legitimate")}
-            disabled={isRunning}
-            className={`flex items-center justify-between p-3.5 rounded-xl border transition-all text-left ${
-              activeScenario === "legitimate" && isRunning
-                ? "bg-emerald-950/40 border-emerald-500 shadow-lg shadow-emerald-950/50"
-                : "bg-cyber-surface hover:bg-cyber-card border-cyber-border hover:border-emerald-500/50"
-            } disabled:opacity-50 disabled:cursor-not-allowed group`}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform">
-                <Zap className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="text-xs font-bold text-white">
-                  ⚡ 場景一：合法數據採購 (Legitimate Purchase)
-                </div>
-                <div className="text-[11px] text-slate-400">
-                  0.01 USDC · Exact 固定計費 · ERC-3009 零手續費秒級結算
-                </div>
-              </div>
-            </div>
-            <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all" />
-          </button>
-
-          {/* Button 2: Prompt Injection Attack */}
-          <button
-            onClick={() => onRunScenario("attack")}
-            disabled={isRunning}
-            className={`flex items-center justify-between p-3.5 rounded-xl border transition-all text-left ${
-              activeScenario === "attack" && isRunning
-                ? "bg-rose-950/40 border-rose-500 shadow-lg shadow-rose-950/50"
-                : "bg-cyber-surface hover:bg-cyber-card border-cyber-border hover:border-rose-500/50"
-            } disabled:opacity-50 disabled:cursor-not-allowed group`}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 group-hover:scale-105 transition-transform">
-                <ShieldAlert className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="text-xs font-bold text-white flex items-center gap-2">
-                  <span>🛑 場景二：提示詞注入攻擊攔截 (Prompt Injection)</span>
-                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-rose-950 text-rose-300 border border-rose-600/40">OWASP ASI02</span>
-                </div>
-                <div className="text-[11px] text-slate-400">
-                  駭客誘騙 Agent 轉帳 500 USDC ➔ 策略閘門瞬間熔斷阻斷！
-                </div>
-              </div>
-            </div>
-            <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-rose-400 group-hover:translate-x-0.5 transition-all" />
-          </button>
-
-          {/* Button 3: Multi-Agent Negotiation */}
-          <button
-            onClick={() => onRunScenario("negotiation")}
-            disabled={isRunning}
-            className={`flex items-center justify-between p-3.5 rounded-xl border transition-all text-left ${
-              activeScenario === "negotiation" && isRunning
-                ? "bg-purple-950/40 border-purple-500 shadow-lg shadow-purple-950/50"
-                : "bg-cyber-surface hover:bg-cyber-card border-cyber-border hover:border-purple-500/50"
-            } disabled:opacity-50 disabled:cursor-not-allowed group`}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 group-hover:scale-105 transition-transform">
-                <Handshake className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="text-xs font-bold text-white flex items-center gap-2">
-                  <span>🤝 場景三：多代理動態談判與 SLA 抵押擔保</span>
-                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-purple-950 text-purple-300 border border-purple-600/40">ERC-8004</span>
-                </div>
-                <div className="text-[11px] text-slate-400">
-                  0.05 ➔ 0.03 USDC (成功砍價 40%) · 雙簽 EIP-712 · SLA 保證金
-                </div>
-              </div>
-            </div>
-            <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-purple-400 group-hover:translate-x-0.5 transition-all" />
-          </button>
-
-        </div>
-      </div>
-
-      {/* 8-Step Pipeline Visualizer */}
-      <div className="p-4 rounded-xl bg-cyber-card border border-cyber-border">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-            <Shield className="w-3.5 h-3.5 text-blue-400" />
-            8 步安全支付管線實時遙測 (Security Pipeline)
-          </span>
-          <span className="text-[10px] font-mono text-slate-500">x402 v2 官方規範</span>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-          {pipeline.map((step) => {
-            let badgeClass = "bg-slate-900/50 border-slate-800 text-slate-500";
-            if (step.status === "active") badgeClass = "bg-blue-950/70 border-blue-500 text-blue-300 shadow-md shadow-blue-950 animate-pulse";
-            if (step.status === "success") badgeClass = "bg-emerald-950/60 border-emerald-500/60 text-emerald-300";
-            if (step.status === "blocked") badgeClass = "bg-rose-950/80 border-rose-500 text-rose-300 animate-bounce";
-
-            return (
-              <div
-                key={step.id}
-                className={`p-2.5 rounded-lg border flex flex-col justify-between transition-all ${badgeClass}`}
-              >
-                <div className="flex items-center justify-between font-mono text-[10px] mb-1">
-                  <span>步驟 {step.id}</span>
-                  {step.status === "success" && <CheckCircle2 className="w-3 h-3 text-emerald-400" />}
-                  {step.status === "blocked" && <XCircle className="w-3 h-3 text-rose-400" />}
-                </div>
-                <div className="font-bold text-[11px] truncate">{step.name}</div>
-                <div className="text-[9px] text-slate-400 truncate mt-0.5">{step.subtext}</div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Real-Time Agent Logs Console */}
-      <div className="p-3.5 rounded-xl bg-[#04060b] border border-cyber-border font-mono text-xs">
-        <div className="flex items-center justify-between mb-2 text-slate-400 border-b border-slate-800/80 pb-1.5">
-          <span className="flex items-center gap-1.5 text-[11px] font-bold">
-            <Terminal className="w-3.5 h-3.5 text-cathay-emerald" />
-            哨兵即時安全審計日誌 (Sentinel Audit Stream)
-          </span>
-          <span className="text-[10px] text-emerald-400">已連接安全匯流排</span>
-        </div>
-        <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-          {logs.slice(-6).map((log, i) => (
-            <div key={i} className="flex items-start gap-2 text-[11px] leading-tight">
-              <span className="text-slate-500 shrink-0">{log.time}</span>
-              <span
-                className={
-                  log.type === "error"
-                    ? "text-rose-400 font-semibold"
-                    : log.type === "success"
-                    ? "text-emerald-400 font-semibold"
-                    : log.type === "warn"
-                    ? "text-amber-300"
-                    : "text-slate-300"
-                }
-              >
-                {log.text}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-    </div>
-  );
-};
+function Metric({ label, value }: { label: string; value: string }) { return <div><dt className="micro-label">{label}</dt><dd className="mt-1 truncate font-mono text-[10px] text-slate-300">{value}</dd></div>; }

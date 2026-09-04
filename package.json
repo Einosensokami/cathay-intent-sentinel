@@ -12,8 +12,7 @@
     "demo:prompt-injection": "npm --workspace @intent-sentinel/demo run prompt-injection",
     "demo:streaming": "npm --workspace @intent-sentinel/demo run streaming",
     "demo:a2a": "npm --workspace @intent-sentinel/demo run a2a",
-    "frontend": "npm --prefix packages/frontend run dev",
-    "frontend:build": "npm --prefix packages/frontend run build"
+    "dashboard": "npm run dev --workspace=@cathay/intent-sentinel-frontend"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
