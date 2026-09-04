@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cathay IntentSentinel — Policy-Bounded Agentic Financial Gateway</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              cathay: {
+                green: '#00805E',
+                emerald: '#00A375',
+                dark: '#004D38',
+              },
+              cyber: {
+                bg: '#070a13',
+                surface: '#0d1527',
+                card: '#121d36',
+                border: '#1e2d4d',
+                hover: '#25375c',
+                accent: '#38bdf8',
+                red: '#f43f5e',
+                green: '#10b981',
+                gold: '#f59e0b',
+                purple: '#a855f7',
+              }
+            },
+            fontFamily: {
+              sans: ['Plus Jakarta Sans', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      body {
+        background-color: #070a13;
+        color: #f1f5f9;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+      }
+      .font-mono {
+        font-family: 'JetBrains Mono', monospace;
+      }
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #070a13;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #1e2d4d;
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #25375c;
+      }
+      @keyframes pulse-slow {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+      .animate-pulse-slow {
+        animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+    </style>
+  </head>
+  <body class="bg-[#070a13] text-slate-100 min-h-screen selection:bg-cathay-emerald selection:text-white">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
