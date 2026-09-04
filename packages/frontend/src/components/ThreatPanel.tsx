@@ -7,10 +7,10 @@ export function ThreatPanel({ threat, onInspect }: { threat: ThreatRecord | null
       <article className="panel-card flex items-center gap-4 p-4">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-emerald/20 bg-emerald/5 text-emerald"><Fingerprint size={20} /></span>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold text-slate-200">Threat defense standing by</p>
-          <p className="mt-1 text-[10px] text-slate-500">All policy dimensions nominal. Evidence capture is armed.</p>
+          <p className="text-xs font-semibold text-slate-200">威脅防禦待命</p>
+          <p className="mt-1 text-[10px] text-slate-500">所有政策維度正常，證據擷取已武裝。</p>
         </div>
-        <span className="tag tag--active">Protected</span>
+        <span className="tag tag--active">已保護</span>
       </article>
     );
   }
@@ -26,7 +26,7 @@ export function ThreatPanel({ threat, onInspect }: { threat: ThreatRecord | null
           </div>
           <p className="mt-1.5 text-[10px] leading-4 text-red-200/55">{threat.description}</p>
           <button type="button" className="mt-3 flex items-center gap-1.5 text-[10px] font-semibold text-alert transition-colors hover:text-red-300" onClick={() => onInspect(threat)}>
-            Inspect STIX 2.1 evidence <ArrowRight size={12} />
+            檢視 STIX 2.1 證據 <ArrowRight size={12} />
           </button>
         </div>
       </div>

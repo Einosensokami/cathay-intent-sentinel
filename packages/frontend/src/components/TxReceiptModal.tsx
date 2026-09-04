@@ -1,37 +1,12 @@
-import { ArrowUpRight, CheckCircle2, Copy, Fuel } from "lucide-react";
+import { AlertCircle, ArrowUpRight, CheckCircle2, Copy, Fuel } from "lucide-react";
 import type { Transaction } from "../types";
 import { Modal } from "./Modal";
 
 export function TxReceiptModal({ transaction, onClose }: { transaction: Transaction | null; onClose: () => void }) {
-  const settled = transaction?.status === "settled";
-  return (
-    <Modal open={Boolean(transaction)} onClose={onClose} eyebrow="Settlement evidence" title={settled ? "Verified transaction receipt" : "Policy denial receipt"}>
-      {transaction && <div className="space-y-5">
-        <div className={`flex items-center gap-3 rounded-xl border p-4 ${settled ? "border-emerald/20 bg-emerald/5" : "border-alert/20 bg-alert/5"}`}>
-          <CheckCircle2 size={20} className={settled ? "text-emerald" : "text-alert"} />
-          <div><p className="text-sm font-semibold text-white">{settled ? "Finalized on Base Sepolia" : "Rejected before signing"}</p><p className="mt-0.5 text-[10px] text-slate-500">{settled ? "Receipt verified · ERC-3009 authorization consumed" : "No custody access · no funds moved"}</p></div>
-        </div>
-        <dl className="grid gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-2">
-          <ReceiptField label="Reference" value={transaction.id} />
-          <ReceiptField label="Timestamp" value={`${transaction.time} UTC+8`} />
-          <ReceiptField label="Merchant" value={transaction.merchant} />
-          <ReceiptField label="Amount" value={transaction.amount} />
-          <ReceiptField label="Network" value={transaction.network ?? "Not submitted"} />
-          <ReceiptField label="Block" value={transaction.block ?? "—"} />
-        </dl>
-        {transaction.txHash && <div className="rounded-xl border border-line bg-[#080d16] p-4">
-          <div className="flex items-center justify-between gap-4"><p className="micro-label">Transaction hash</p><button type="button" className="audit-link" onClick={() => void navigator.clipboard?.writeText(transaction.txHash ?? "")}>Copy <Copy size={10} /></button></div>
-          <p className="mt-2 break-all font-mono text-[10px] leading-5 text-slate-300">{transaction.txHash}</p>
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
-            <span className="flex items-center gap-1.5 text-[10px] text-emerald"><Fuel size={12} /> Gas sponsored by facilitator</span>
-            <a className="audit-link" href={`https://sepolia.basescan.org/tx/${transaction.txHash}`} target="_blank" rel="noreferrer">Open in Basescan <ArrowUpRight size={11} /></a>
-          </div>
-        </div>}
-      </div>}
-    </Modal>
-  );
+  const confirmed = transaction?.status === "settled" && transaction.verified && transaction.mode === "live";
+  const blocked = transaction?.status === "blocked";
+  const unknown = transaction?.status === "unknown";
+  const explorer = confirmed ? transaction?.explorerUrl : undefined;
+  return <Modal open={Boolean(transaction)} onClose={onClose} eyebrow="Settlement evidence" title={confirmed ? "已驗證交易收據" : blocked ? "政策拒絕收據" : unknown ? "結算結果待確認" : "模擬交易收據"}>{transaction && <div className="space-y-5"><div className={`flex items-center gap-3 rounded-xl border p-4 ${confirmed ? "border-emerald/20 bg-emerald/5" : blocked ? "border-alert/20 bg-alert/5" : "border-amber-400/20 bg-amber-400/5"}`}>{confirmed ? <CheckCircle2 size={20} className="text-emerald" /> : <AlertCircle size={20} className={blocked ? "text-alert" : "text-amber-300"} />}<div><p className="text-sm font-semibold text-white">{confirmed ? "已在 Base Sepolia 確認" : blocked ? "簽署前已拒絕" : unknown ? "後端回報尚未確認" : "Mock 模擬，未提交鏈上交易"}</p><p className="mt-0.5 text-[10px] text-slate-500">{confirmed ? "收據已驗證 · ERC-3009 authorization 已消耗" : blocked ? "未接觸 custody · 資金未移動" : "此結果不代表真實資金或鏈上收據"}</p></div></div><dl className="grid gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-2"><ReceiptField label="參考編號" value={transaction.id} /><ReceiptField label="時間" value={`${transaction.time} UTC+8`} /><ReceiptField label="商戶" value={transaction.merchant} /><ReceiptField label="金額" value={transaction.amount} /><ReceiptField label="模式" value={transaction.mode === "mock" ? "Mock 模擬" : "Live-configured"} /><ReceiptField label="區塊" value={transaction.block ?? "未確認"} /></dl>{transaction.txHash && <div className="rounded-xl border border-line bg-[#080d16] p-4"><div className="flex items-center justify-between gap-4"><p className="micro-label">Transaction hash</p><button type="button" className="audit-link" onClick={() => void navigator.clipboard?.writeText(transaction.txHash ?? "")}>Copy <Copy size={10} /></button></div><p className="mt-2 break-all font-mono text-[10px] leading-5 text-slate-300">{transaction.txHash}</p>{explorer && <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3"><span className="flex items-center gap-1.5 text-[10px] text-emerald"><Fuel size={12} /> Facilitator 贊助 gas</span><a className="audit-link" href={explorer} target="_blank" rel="noreferrer">開啟 Basescan <ArrowUpRight size={11} /></a></div>}</div>}{transaction.reason && <p className="rounded-lg border border-line bg-white/[0.02] p-3 font-mono text-[10px] leading-5 text-slate-400">{transaction.reason}</p>}</div>}</Modal>;
 }
-
-function ReceiptField({ label, value }: { label: string; value: string }) {
-  return <div className="bg-surface px-4 py-3"><dt className="micro-label">{label}</dt><dd className="mt-1.5 font-mono text-[11px] text-slate-300">{value}</dd></div>;
-}
+function ReceiptField({ label, value }: { label: string; value: string }) { return <div className="bg-surface px-4 py-3"><dt className="micro-label">{label}</dt><dd className="mt-1.5 font-mono text-[11px] text-slate-300">{value}</dd></div>; }

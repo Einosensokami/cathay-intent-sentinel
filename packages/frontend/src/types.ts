@@ -1,6 +1,6 @@
 export type Scenario = "legitimate" | "attack" | "negotiation";
-export type RunState = "idle" | "running" | "settled" | "blocked";
-export type StepState = "waiting" | "active" | "complete" | "blocked";
+export type RunState = "idle" | "running" | "settled" | "blocked" | "failed" | "unknown";
+export type StepState = "waiting" | "active" | "complete" | "blocked" | "error";
 
 export interface PipelineStep {
   id: number;
@@ -15,11 +15,17 @@ export interface Transaction {
   merchant: string;
   resource: string;
   amount: string;
-  status: "settled" | "blocked";
+  status: "settled" | "blocked" | "pending" | "failed" | "unknown";
+  mode: "mock" | "live";
+  verified: boolean;
   txHash?: string;
   network?: string;
   block?: string;
   gasSponsored?: boolean;
+  explorerUrl?: string;
+  requestId?: string;
+  correlationId?: string;
+  reason?: string;
 }
 
 export interface ThreatRecord {
