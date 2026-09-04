@@ -20,9 +20,12 @@ export interface PaymentRequirements {
   extra?: Record<string, unknown>;
 }
 
+/** x402 v2 permits either a URL string or the richer ResourceInfo form. */
+export type ResourceReference = string | { url: string; [key: string]: unknown };
+
 export interface PaymentRequired {
   x402Version: 2;
-  resource: string;
+  resource: ResourceReference;
   accepts: PaymentRequirements[];
   error?: string;
 }
@@ -39,7 +42,7 @@ export interface TransferAuthorization {
 /** The encoded PAYMENT-SIGNATURE payload (x402 v2). */
 export interface PaymentSignature {
   version: 2;
-  resource: string;
+  resource: ResourceReference;
   accepted: PaymentRequirements;
   authorization: TransferAuthorization;
   signature: string;
@@ -206,11 +209,16 @@ export function encodePaymentHeader(value: unknown): string {
   return encodeHeader(value);
 }
 
+export function resourceUrl(resource: ResourceReference): string {
+  return typeof resource === "string" ? resource : resource.url;
+}
+
 export function readPaymentRequired(response: Response): PaymentRequired {
   const encoded = response.headers.get("PAYMENT-REQUIRED");
   if (!encoded) throw new PaymentProtocolError("402 response has no PAYMENT-REQUIRED header");
   const challenge = decodeHeader<Partial<PaymentRequired>>(encoded);
-  if (challenge.x402Version !== 2 || typeof challenge.resource !== "string" || !Array.isArray(challenge.accepts)) {
+  if (challenge.x402Version !== 2 || !challenge.resource ||
+    (typeof challenge.resource !== "string" && typeof challenge.resource.url !== "string") || !Array.isArray(challenge.accepts)) {
     throw new PaymentProtocolError("PAYMENT-REQUIRED is not a valid x402 v2 challenge");
   }
   if (challenge.accepts.length === 0) {
@@ -349,7 +357,7 @@ export class ControlledRetryClient {
     if (!decision.allowed) throw new PaymentPolicyError(decision, intent);
 
     const signed = await this.options.signer.sign(intent, requirement, context);
-    const payment = signedToPayload(signed, intent, requirement, challenge.resource || request.url);
+    const payment = signedToPayload(signed, intent, requirement, resourceUrl(challenge.resource) || request.url);
     this.emit({ type: "signed", intentId: intent.intentId });
 
     const headers = new Headers(retryRequest.headers);

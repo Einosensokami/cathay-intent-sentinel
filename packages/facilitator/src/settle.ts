@@ -151,3 +151,5 @@ export function createSettlementHandler(options: FacilitatorOptions) {
   const facilitator = new Facilitator(options);
   return (request: SettleRequest) => facilitator.settle(request);
 }
+
+export const createSettleHandler = createSettlementHandler;

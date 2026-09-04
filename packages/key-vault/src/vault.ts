@@ -15,7 +15,17 @@ export class ScopedKeyVault {
   public get scope(): PaymentIntent { return structuredClone(this.#scope); }
   public get intent(): PaymentIntent { return this.scope; }
   public get isOpen(): boolean { return this.#account !== undefined; }
-  public assertScope(intent: PaymentIntent): void { if (!this.#account) throw new VaultError("vault is closed"); if (JSON.stringify(this.#scope) !== JSON.stringify(intent)) throw new VaultError("payment intent is outside vault scope"); }
+  public assertScope(intent: PaymentIntent): void {
+    if (!this.#account) throw new VaultError("vault is closed");
+    const same = this.#scope.task_id === intent.task_id &&
+      this.#scope.resource === intent.resource &&
+      this.#scope.payee.toLowerCase() === intent.payee.toLowerCase() &&
+      this.#scope.max_amount === intent.max_amount &&
+      this.#scope.asset_network.asset.toLowerCase() === intent.asset_network.asset.toLowerCase() &&
+      this.#scope.asset_network.network === intent.asset_network.network &&
+      this.#scope.expires_at === intent.expires_at;
+    if (!same) throw new VaultError("payment intent is outside vault scope");
+  }
   /** Sign only an ERC-3009 authorization that fits this vault's immutable scope. */
   public async signTransferWithAuthorization(input: { domain: Eip712Domain; authorization: Erc3009Authorization }): Promise<Hex> {
     const account = this.#account; if (!account) throw new VaultError("vault is closed"); assertValidPaymentIntent(this.#scope, this.#clock());
@@ -31,5 +41,5 @@ export class ScopedKeyVault {
   /** Raw typed-data signing is intentionally unavailable at the vault boundary. */
   public async signTypedData(_params: unknown): Promise<Hex> { throw new VaultError("raw typed-data signing is disabled; use signTransferWithAuthorization"); }
   public close(): void { this.#account = undefined; }
-  public toJSON(): { address: string; scope: PaymentIntent; isOpen: boolean } { return { address: this.address, scope: this.scope, isOpen: this.isOpen }; }
+  public toJSON(): { address: string; scope: PaymentIntent; isOpen: boolean } { return { address: this.#account?.address ?? "", scope: this.scope, isOpen: this.isOpen }; }
 }

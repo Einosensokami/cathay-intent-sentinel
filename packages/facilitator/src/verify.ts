@@ -76,7 +76,7 @@ function isPaymentPayload(value: unknown): value is PaymentPayload<ExactEvmPaylo
   const candidate = value as Record<string, unknown>;
   const payload = candidate.payload;
   return candidate.x402Version === 2 &&
-    (!candidate.resource || (typeof candidate.resource === "object" && typeof (candidate.resource as Record<string, unknown>).url === "string")) &&
+    (!candidate.resource || typeof candidate.resource === "string" || (typeof candidate.resource === "object" && typeof (candidate.resource as Record<string, unknown>).url === "string")) &&
     !!candidate.accepted && typeof candidate.accepted === "object" && !!payload && typeof payload === "object" &&
     isAuthorization((payload as Record<string, unknown>).authorization) && typeof (payload as Record<string, unknown>).signature === "string";
 }
@@ -94,7 +94,7 @@ function sameRequirement(payload: PaymentPayload, requirements: PaymentRequireme
   return accepted.scheme === requirements.scheme && accepted.network === requirements.network &&
     accepted.asset.toLowerCase() === requirements.asset.toLowerCase() && accepted.amount === requirements.amount &&
     accepted.payTo.toLowerCase() === requirements.payTo.toLowerCase() &&
-    (!requirements.extra?.resource || (typeof requirements.extra.resource === "string" && typeof payload.resource === "object" && payload.resource.url === requirements.extra.resource));
+    (!requirements.extra?.resource || (typeof requirements.extra.resource === "string" && ((typeof payload.resource === "string" && payload.resource === requirements.extra.resource) || (typeof payload.resource === "object" && payload.resource.url === requirements.extra.resource))));
 }
 
 export async function verifyPayment(request: VerifyRequest, options: VerifyOptions): Promise<VerifyResult> {
@@ -143,3 +143,4 @@ export async function verifyPayment(request: VerifyRequest, options: VerifyOptio
 }
 
 export const createVerifyHandler = (options: VerifyOptions) => (request: VerifyRequest) => verifyPayment(request, options);
+export const verify = verifyPayment;

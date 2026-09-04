@@ -147,6 +147,8 @@ export interface SettlementResponseFailure {
 }
 
 export type SettlementResponse = SettlementResponseSuccess | SettlementResponseFailure;
+/** Alias used by facilitator implementations and the x402 specification. */
+export type SettleResponse = SettlementResponse;
 
 export interface SupportedKind {
   x402Version: X402Version;

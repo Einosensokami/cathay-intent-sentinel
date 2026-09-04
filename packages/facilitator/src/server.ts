@@ -71,3 +71,4 @@ export function createFacilitatorServer(options: FacilitatorHttpOptions): Server
 }
 
 export const createServerForFacilitator = createFacilitatorServer;
+export const createFacilitatorHttpServer = createFacilitatorServer;

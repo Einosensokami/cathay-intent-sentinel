@@ -48,6 +48,8 @@ export class InMemoryTrustRegistry implements TrustRegistry {
     this.records.set(address, { ...record, identity: { ...identity, address }, reputation });
   }
 
+  registerMerchant(record: MerchantRecord): void { this.register(record); }
+
   revoke(address: string): void {
     const key = getAddress(address).toLowerCase();
     const record = this.records.get(key);

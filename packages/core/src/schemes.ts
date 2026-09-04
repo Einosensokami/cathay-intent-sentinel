@@ -57,6 +57,9 @@ export const BATCH_SETTLEMENT_SPEC = {
 } as const satisfies SchemeSpecification;
 
 export const SUPPORTED_SCHEME_SPECIFICATIONS = [EXACT_EIP3009_SPEC, UPTO_PERMIT2_SPEC, BATCH_SETTLEMENT_SPEC] as const;
+export const EXACT_SCHEME = EXACT_EIP3009_SPEC;
+export const UPTO_SCHEME = UPTO_PERMIT2_SPEC;
+export const BATCH_SETTLEMENT_SCHEME = BATCH_SETTLEMENT_SPEC;
 
 export function getSchemeSpecification(scheme: string, assetTransferMethod?: string): SchemeSpecification | undefined {
   return SUPPORTED_SCHEME_SPECIFICATIONS.find(

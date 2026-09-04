@@ -2,6 +2,7 @@ import {
   decodeHeader,
   encodePaymentHeader,
   PaymentProtocolError,
+  resourceUrl,
   type FetchLike,
   type PaymentRequired,
   type PaymentRequirements,
@@ -71,7 +72,8 @@ function paymentPayloadFromHeader(encoded: string): PaymentSignature {
   } as Partial<PaymentSignature>;
   if (
     payment.version !== 2 ||
-    typeof payment.resource !== "string" ||
+    !payment.resource ||
+    (typeof payment.resource !== "string" && typeof payment.resource.url !== "string") ||
     !payment.accepted ||
     typeof payment.signature !== "string" ||
     !payment.authorization
@@ -147,7 +149,7 @@ function validatePayment(
   request: Request,
   now: number,
 ): string | undefined {
-  if (payment.resource !== quote.resource && payment.resource !== request.url) return "resource mismatch";
+  if (resourceUrl(payment.resource) !== resourceUrl(quote.resource) && resourceUrl(payment.resource) !== request.url) return "resource mismatch";
   const requirement = quote.accepts.find((candidate) =>
     candidate.scheme === payment.accepted.scheme &&
     candidate.network === payment.accepted.network &&

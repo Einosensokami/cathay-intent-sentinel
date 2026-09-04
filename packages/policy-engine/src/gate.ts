@@ -151,6 +151,15 @@ export class PolicyGate {
     if (amount > parseAmount(intent.max_amount)) throw new RangeError("Settled amount exceeds the approved intent");
     if (!this.approvedIntents.has(intentHash(intent))) throw new Error("Cannot record settlement for an intent that was not approved");
     await this.lock.run(async () => {
+      const usage = await this.usageLedger.snapshot(intent.task_id, at);
+      const taskCap = this.rules.config.task_specific_caps[intent.task_id];
+      if (taskCap === undefined || usage.daily_spent + amount > this.rules.config.daily_budget_cap || usage.task_spent + amount > taskCap) {
+        throw new Error("Settlement would exceed a configured budget cap");
+      }
+      const cutoff = at - this.rules.config.velocity_limit.window_seconds;
+      if (usage.recent_call_timestamps.filter((timestamp) => timestamp >= cutoff).length >= this.rules.config.velocity_limit.max_calls) {
+        throw new Error("Settlement would exceed the velocity limit");
+      }
       await this.usageLedger.record(intent.task_id, amount, at);
     });
   }

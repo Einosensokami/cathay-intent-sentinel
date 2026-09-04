@@ -38,6 +38,15 @@ export class InMemoryIntentLogger implements IntentLogger {
 
 export interface DefenseResult { violations: RuleViolation[]; intent_hash: string; }
 
+export const OWASP_AGENTIC_CONTROLS = {
+  ASI01: "Trusted task binding prevents goal hijacking",
+  ASI02: "Merchant/payee allowlists and trust registry prevent tool misuse",
+  ASI03: "Per-call, daily, task, and velocity budgets limit privilege abuse",
+  ASI06: "Trusted task context is isolated from untrusted model context",
+  ASI08: "Atomic nonce registry prevents authorization replay",
+  ASI09: "Every decision has a stable intent hash and explainable reasons",
+} as const;
+
 const CONTROL_FIELDS = new Set(["task_id", "resource", "payee", "max_amount", "asset_network", "expires_at"]);
 
 export function intentHash(intent: PaymentIntent): string {

@@ -62,6 +62,8 @@ export type PolicyViolationCode =
   | "TASK_MISMATCH"
   | "RESOURCE_MISMATCH"
   | "PAYEE_MISMATCH"
+  | "ASSET_NETWORK_MISMATCH"
+  | "EXPIRY_MISMATCH"
   | "AMOUNT_EXCEEDED"
   | "BUDGET_EXCEEDED"
   | "DAILY_CAP_EXCEEDED"
@@ -156,18 +158,19 @@ export class ConfigurablePolicyRules {
 
   evaluate(intent: PaymentIntent, context: TaskContext, usage: UsageSnapshot, now: number): RuleViolation[] {
     const violations: RuleViolation[] = [];
-    const amount = (() => { try { return parseAmount(intent.max_amount); } catch { return null; } })();
-    if (!intent || !context || amount === null || !Number.isFinite(now)) {
+    if (!intent || !context || !Number.isFinite(now)) {
       return [{ code: "INVALID_INTENT", message: "Intent, context, and amount must be valid" }];
     }
-    if (intent.task_id !== context.task_id) violations.push({ code: "TASK_MISMATCH", message: "Intent task does not match task context" });
+    const amount = (() => { try { return parseAmount(intent.max_amount); } catch { return null; } })();
+    if (amount === null) return [{ code: "INVALID_INTENT", message: "Intent amount must be an unsigned atomic-unit integer" }];
+    if (intent.task_id !== context.task_id) violations.push({ code: "TASK_MISMATCH", message: "[TASK MISMATCH] Intent task does not match task context" });
     if (intent.resource !== context.resource) violations.push({ code: "RESOURCE_MISMATCH", message: "Intent resource does not match task context" });
-    if (!samePayee(intent.payee, context.payee)) violations.push({ code: "PAYEE_MISMATCH", message: "Intent payee does not match task context" });
+    if (!samePayee(intent.payee, context.payee)) violations.push({ code: "PAYEE_MISMATCH", message: "[MERCHANT MISMATCH] Intent payee does not match task context" });
     if (intent.max_amount !== context.max_amount) violations.push({ code: "AMOUNT_EXCEEDED", message: "Intent amount does not match task context" });
     if (intent.asset_network.asset !== context.asset_network.asset || intent.asset_network.network !== context.asset_network.network) {
-      violations.push({ code: "PAYEE_MISMATCH", message: "Intent asset/network does not match task context" });
+      violations.push({ code: "ASSET_NETWORK_MISMATCH", message: "Intent asset/network does not match task context" });
     }
-    if (intent.expires_at !== context.expires_at) violations.push({ code: "EXPIRED", message: "Intent expiry does not match task context" });
+    if (intent.expires_at !== context.expires_at) violations.push({ code: "EXPIRY_MISMATCH", message: "Intent expiry does not match task context" });
     const url = merchantUrl(intent, context);
     if (!validHttpUrl(url)) violations.push({ code: "MERCHANT_NOT_ALLOWED", message: "Merchant URL must be HTTPS" });
     if (!this.config.allowed_merchant_url_patterns.some((pattern) => matchesPattern(url, pattern))) {
@@ -178,9 +181,10 @@ export class ConfigurablePolicyRules {
     if (address && !this.config.allowed_payee_addresses.includes(address)) violations.push({ code: "PAYEE_NOT_ALLOWED", message: "Payee address is not in the allowlist" });
     if (this.config.allowed_assets && !this.config.allowed_assets.includes(intent.asset_network.asset)) violations.push({ code: "ASSET_NOT_ALLOWED", message: "Asset is not allowed" });
     if (this.config.allowed_networks && !this.config.allowed_networks.includes(intent.asset_network.network)) violations.push({ code: "NETWORK_NOT_ALLOWED", message: "Network is not allowed" });
-    if (amount > this.config.per_call_budget_cap) violations.push({ code: "BUDGET_EXCEEDED", message: "Per-call budget cap exceeded" });
+    if (amount > this.config.per_call_budget_cap) violations.push({ code: "BUDGET_EXCEEDED", message: "[BUDGET EXCEEDED] Per-call budget cap exceeded" });
     const taskCap = this.config.task_specific_caps[intent.task_id];
-    if (taskCap !== undefined && usage.task_spent + amount > taskCap) violations.push({ code: "TASK_CAP_EXCEEDED", message: "Task-specific budget cap exceeded" });
+    if (taskCap === undefined) violations.push({ code: "TASK_CAP_EXCEEDED", message: "No task-specific budget cap is configured" });
+    else if (usage.task_spent + amount > taskCap) violations.push({ code: "TASK_CAP_EXCEEDED", message: "Task-specific budget cap exceeded" });
     if (usage.daily_spent + amount > this.config.daily_budget_cap) violations.push({ code: "DAILY_CAP_EXCEEDED", message: "Daily budget cap exceeded" });
     const cutoff = now - this.config.velocity_limit.window_seconds;
     const recent = usage.recent_call_timestamps.filter((timestamp) => timestamp >= cutoff);
