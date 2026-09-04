@@ -317,6 +317,7 @@ export class A2ANegotiator {
 
     const discountedUnit = (listUnit * BigInt(10_000 - discountBps)) / 10_000n;
     const openingTotal = [listTotal, ceiling, discountedUnit * quantity].reduce((lowest, value) => value < lowest ? value : lowest);
+    if (openingTotal <= 0n) throw new Error("negotiated price must be positive");
     if (openingTotal < floor) {
       if (floor > ceiling) throw new Error("seller floor exceeds buyer ceiling");
     }

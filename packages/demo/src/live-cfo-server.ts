@@ -6,6 +6,7 @@ export type CfoMode = "live" | "mock" | "shadow";
 export type CfoSeverity = "info" | "warning" | "critical";
 
 export interface SentinelEvent {
+  schemaVersion: 1;
   eventId: string;
   sequence: number;
   occurredAt: string;
@@ -235,7 +236,7 @@ export class LiveCfoServer {
       if (explorer) payload.explorerUrl = explorer;
     }
     const draft = {
-      eventId: randomUUID(), sequence: this.log.length + 1, occurredAt: input.occurredAt ?? this.now().toISOString(), correlationId: input.correlationId,
+      schemaVersion: 1 as const, eventId: randomUUID(), sequence: this.log.length + 1, occurredAt: input.occurredAt ?? this.now().toISOString(), correlationId: input.correlationId,
       ...(input.taskId ? { taskId: input.taskId } : {}), ...(input.intentHash ? { intentHash: input.intentHash } : {}), mode, type: input.type, severity: input.severity ?? "info", payload, previousEventHash: this.lastEventHash,
     } satisfies Omit<SentinelEvent, "eventHash">;
     const event = { ...draft, eventHash: hash(draft) };
