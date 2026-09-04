@@ -32,15 +32,15 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           </div>
           <div>
             <h2 className="text-sm font-bold text-white uppercase tracking-wider">
-              CFO Financial Control & Audit Terminal
+              CFO 企業金融風控與審計終端
             </h2>
             <p className="text-xs text-slate-400">
-              Enterprise Policy Gate, On-Chain Verification & Threat Logs
+              策略閘門狀態 · 鏈上即時結算 · 威脅情報審計
             </p>
           </div>
         </div>
         <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-emerald-950/60 text-emerald-300 border border-emerald-600/30">
-          Governance: Strict
+          風控等級：嚴格企業級
         </span>
       </div>
 
@@ -48,7 +48,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
       <div className="p-4 rounded-xl bg-cyber-card border border-cyber-border shadow-md">
         <div className="flex items-center justify-between text-xs mb-2">
           <span className="font-bold text-slate-300 uppercase tracking-wider">
-            Daily Corporate Liquidity Budget
+            企業每日流動性預算水位 (Daily Treasury Budget)
           </span>
           <span className="font-mono text-emerald-400 font-bold">
             ${usedAmount.toFixed(2)} / ${cap.toLocaleString()} USDC
@@ -65,16 +65,16 @@ export const RightPanel: React.FC<RightPanelProps> = ({
 
         <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs font-mono pt-3 border-t border-cyber-border/60">
           <div className="p-1.5 rounded bg-cyber-surface">
-            <span className="text-[10px] text-slate-500 block">Per-Call Cap</span>
+            <span className="text-[10px] text-slate-500 block">單筆上限 (Per-Call)</span>
             <span className="text-slate-200 font-bold">$50.00 USDC</span>
           </div>
           <div className="p-1.5 rounded bg-cyber-surface">
-            <span className="text-[10px] text-slate-500 block">High-Risk Floor</span>
+            <span className="text-[10px] text-slate-500 block">高風險審批閾值</span>
             <span className="text-amber-300 font-bold">$200.00 USDC</span>
           </div>
           <div className="p-1.5 rounded bg-cyber-surface">
-            <span className="text-[10px] text-slate-500 block">Fail-Closed Gate</span>
-            <span className="text-emerald-400 font-bold">ACTIVE</span>
+            <span className="text-[10px] text-slate-500 block">預設關閉狀態 (Fail-Closed)</span>
+            <span className="text-emerald-400 font-bold">已啟用 (ACTIVE)</span>
           </div>
         </div>
       </div>
@@ -85,23 +85,23 @@ export const RightPanel: React.FC<RightPanelProps> = ({
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2 text-rose-300 font-bold text-xs uppercase tracking-wider">
               <ShieldAlert className="w-4 h-4 text-rose-400" />
-              OWASP Threat Defense Activated
+              OWASP 資安威脅防禦觸發
             </div>
             <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-rose-900/80 text-rose-200 border border-rose-600/50">
-              {threatAlerts[0]?.owaspCategory} BLOCKED
+              {threatAlerts[0]?.owaspCategory} 攔截成功
             </span>
           </div>
           <p className="text-xs text-rose-200 leading-relaxed font-mono">
             {threatAlerts[0]?.message}
           </p>
           <div className="mt-3 flex items-center justify-between pt-2 border-t border-rose-900/40 text-[11px] font-mono">
-            <span className="text-rose-400">Target: {threatAlerts[0]?.targetResource}</span>
+            <span className="text-rose-400">攻擊目標：{threatAlerts[0]?.targetResource}</span>
             <button
               onClick={() => onOpenStix(threatAlerts[0]!)}
               className="flex items-center gap-1 text-emerald-400 hover:text-emerald-300 font-bold underline"
             >
               <FileCode2 className="w-3.5 h-3.5" />
-              View STIX 2.1 Intel Bundle
+              查看 STIX 2.1 威脅情報 Bundle
             </button>
           </div>
         </div>
@@ -111,10 +111,10 @@ export const RightPanel: React.FC<RightPanelProps> = ({
       <div className="p-4 rounded-xl bg-cyber-card border border-cyber-border flex-1 flex flex-col">
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-            Real-Time Settlement & Audit Stream
+            鏈上即時結算與審計串流 (Settlement Stream)
           </span>
           <span className="text-[10px] font-mono text-slate-500">
-            {transactions.length} Records
+            共 {transactions.length} 筆紀錄
           </span>
         </div>
 
@@ -134,12 +134,12 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                 <div className="flex items-center gap-2 font-semibold text-slate-200">
                   {tx.status === "settled" && (
                     <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-600/40 flex items-center gap-1">
-                      <CheckCircle className="w-3 h-3" /> SETTLED
+                      <CheckCircle className="w-3 h-3" /> 結算成功 (SETTLED)
                     </span>
                   )}
                   {tx.status === "blocked" && (
                     <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-950 text-rose-300 border border-rose-600/40 flex items-center gap-1">
-                      <AlertTriangle className="w-3 h-3" /> BLOCKED
+                      <AlertTriangle className="w-3 h-3" /> 已阻斷 (BLOCKED)
                     </span>
                   )}
                   <span>{tx.scenario}</span>
@@ -158,10 +158,10 @@ export const RightPanel: React.FC<RightPanelProps> = ({
               <div className="mt-2 pt-2 border-t border-cyber-border/40 flex items-center justify-between text-[10px] font-mono">
                 <div className="flex items-center gap-2">
                   {tx.reputationScore && (
-                    <span className="text-emerald-400">ERC-8004: {tx.reputationScore}/100</span>
+                    <span className="text-emerald-400">ERC-8004 信用分：{tx.reputationScore}/100</span>
                   )}
                   {tx.discountPct && (
-                    <span className="text-purple-300">Discount: -{tx.discountPct}%</span>
+                    <span className="text-purple-300">議價折扣：-{tx.discountPct}%</span>
                   )}
                 </div>
                 {tx.explorerUrl && (
@@ -172,7 +172,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
                     className="flex items-center gap-1 text-sky-400 hover:text-sky-300 underline font-semibold"
                   >
                     <ExternalLink className="w-3 h-3" />
-                    Basescan Tx
+                    Basescan 鏈上查驗
                   </a>
                 )}
               </div>

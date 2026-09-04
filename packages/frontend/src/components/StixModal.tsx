@@ -32,10 +32,10 @@ export const StixModal: React.FC<StixModalProps> = ({ alert, onClose }) => {
             </div>
             <div>
               <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                STIX 2.1 Structured Threat Intel Bundle
+                STIX 2.1 結構化網路威脅情報 (Threat Intel Bundle)
               </h3>
               <p className="text-[11px] text-slate-400">
-                OASIS Cyber Threat Intelligence Standard · Redacted & Quarantined
+                OASIS 國際資安威脅情資標準 · 已自動脫敏並隔離敏感憑證
               </p>
             </div>
           </div>
@@ -51,24 +51,24 @@ export const StixModal: React.FC<StixModalProps> = ({ alert, onClose }) => {
         <div className="p-6 space-y-4 font-mono text-xs max-h-[60vh] overflow-y-auto">
           <div className="grid grid-cols-2 gap-3 text-[11px]">
             <div className="p-2.5 rounded-lg bg-cyber-bg border border-cyber-border">
-              <span className="text-slate-500 block">OWASP Attack Class</span>
+              <span className="text-slate-500 block">OWASP 攻擊類別</span>
               <span className="text-rose-400 font-bold">{alert.owaspCategory} · {alert.attackType}</span>
             </div>
             <div className="p-2.5 rounded-lg bg-cyber-bg border border-cyber-border">
-              <span className="text-slate-500 block">Confidence Level</span>
-              <span className="text-emerald-400 font-bold">98% High Confidence</span>
+              <span className="text-slate-500 block">情報置信度 (Confidence)</span>
+              <span className="text-emerald-400 font-bold">98% 高度置信 (High)</span>
             </div>
           </div>
 
           <div>
             <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1.5">
-              <span>Sanitized STIX Bundle (Pushable to SIEM/SOC):</span>
+              <span>已脫敏 STIX 2.1 JSON（可直接推播至企業 SIEM/SOC 資安中心）：</span>
               <button
                 onClick={handleCopy}
                 className="flex items-center gap-1 text-cathay-emerald hover:text-emerald-300 font-semibold transition-colors"
               >
                 {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                {copied ? "Copied!" : "Copy JSON"}
+                {copied ? "已複製！" : "複製 JSON"}
               </button>
             </div>
             <pre className="p-4 rounded-xl bg-[#030509] border border-cyber-border text-slate-300 text-[11px] leading-relaxed overflow-x-auto">
@@ -79,12 +79,12 @@ export const StixModal: React.FC<StixModalProps> = ({ alert, onClose }) => {
 
         {/* Footer */}
         <div className="px-6 py-3.5 border-t border-cyber-border bg-cyber-card flex items-center justify-between text-xs font-mono">
-          <span className="text-slate-500">Security Gate: Zero Credential Leakage</span>
+          <span className="text-slate-500">安全閘門：私鑰零洩漏 · 攻擊已阻斷</span>
           <button
             onClick={onClose}
             className="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-semibold transition-colors"
           >
-            Close Inspector
+            關閉檢視器
           </button>
         </div>
 

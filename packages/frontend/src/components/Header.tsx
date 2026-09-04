@@ -24,14 +24,14 @@ export const Header: React.FC<HeaderProps> = ({ balance, cap, isArmed }) => {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
-                Cathay IntentSentinel
+                Cathay IntentSentinel 國泰意圖哨兵
               </h1>
               <span className="text-[11px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-cathay-dark/80 text-emerald-300 border border-emerald-500/30">
-                x402 v2 Gateway
+                x402 v2 金融閘道
               </span>
             </div>
             <p className="text-xs text-slate-400 font-medium">
-              Policy-Bounded Agentic Financial Guardrail & Zero-Gas Settlement
+              策略約束型 AI 代理人金融安全護欄 · Base 鏈上零手續費結算
             </p>
           </div>
         </div>
@@ -42,7 +42,7 @@ export const Header: React.FC<HeaderProps> = ({ balance, cap, isArmed }) => {
           {/* Network Badge */}
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cyber-card border border-cyber-border">
             <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-            <span className="text-slate-300 font-semibold">Base Sepolia</span>
+            <span className="text-slate-300 font-semibold">Base Sepolia 測試網</span>
             <span className="text-slate-500 text-[10px]">(84532)</span>
           </div>
 
@@ -53,20 +53,20 @@ export const Header: React.FC<HeaderProps> = ({ balance, cap, isArmed }) => {
               : "bg-rose-950/40 border-rose-600/40 text-rose-300"
           }`}>
             <Lock className="w-3.5 h-3.5" />
-            <span className="font-bold">{isArmed ? "POLICY: ARMED" : "POLICY: DISARMED"}</span>
+            <span className="font-bold">{isArmed ? "策略閘門：已布防 (ARMED)" : "策略閘門：未布防"}</span>
           </div>
 
           {/* CFO Treasury Box */}
           <div className="flex items-center gap-3 px-3.5 py-1.5 rounded-lg bg-cyber-card border border-cyber-border/80">
             <div>
-              <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-sans">CFO Treasury</span>
+              <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-sans">CFO 企業金庫餘額</span>
               <span className="text-sm font-extrabold text-white">
                 {balance.toLocaleString("en-US", { minimumFractionDigits: 2 })} <span className="text-cathay-emerald text-xs">USDC</span>
               </span>
             </div>
             <div className="w-px h-6 bg-cyber-border" />
             <div className="text-right">
-              <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-sans">Cap Used</span>
+              <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-sans">已使用額度</span>
               <span className="text-xs font-semibold text-emerald-400">
                 {percentUsed}%
               </span>

@@ -28,15 +28,15 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({
           </div>
           <div>
             <h2 className="text-sm font-bold text-white uppercase tracking-wider">
-              Autonomous AI Agent Workspace
+              自主 AI 代理人工作區 (Agent Workspace)
             </h2>
             <p className="text-xs text-slate-400">
-              Reasoning Engine (LLM Context Zero-Key Isolated)
+              大模型推理層 · 零私鑰隔離環境 (Zero-Key Custody)
             </p>
           </div>
         </div>
         <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-blue-950/60 text-blue-300 border border-blue-600/30">
-          Agent ID: research-agent-01
+          代理人 ID: research-agent-01
         </span>
       </div>
 
@@ -44,19 +44,19 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({
       <div className="p-4 rounded-xl bg-cyber-card border border-cyber-border/80 shadow-md">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-            Active Mission Goal
+            當前執行任務目標 (Active Mission)
           </span>
           <span className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-400">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            Autonomous Execution
+            自主執行中 (Autonomous)
           </span>
         </div>
         <p className="text-sm font-semibold text-slate-200">
-          "Aggregate Q3 Semiconductor Market Intel from Paid Verified APIs"
+          「自動從外部付費驗證 API 聚合 Q3 半導體市場情報研報」
         </p>
         <div className="mt-3 pt-3 border-t border-cyber-border/60 flex items-center justify-between text-xs font-mono text-slate-400">
-          <span>Target: <strong className="text-slate-300 font-normal">api.cathay-verified.com</strong></span>
-          <span>Max Intent Cap: <strong className="text-emerald-400">0.05 USDC</strong></span>
+          <span>目標端點：<strong className="text-slate-300 font-normal">api.cathay-verified.com</strong></span>
+          <span>意圖授權上限：<strong className="text-emerald-400">0.05 USDC</strong></span>
         </div>
       </div>
 
@@ -64,7 +64,7 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({
       <div className="flex flex-col gap-2.5">
         <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
           <Zap className="w-3.5 h-3.5 text-cathay-emerald" />
-          Interactive Hackathon Live Scenarios
+          黑客松現場一鍵實機演示 (Interactive Live Scenarios)
         </span>
 
         <div className="grid grid-cols-1 gap-2.5">
@@ -85,10 +85,10 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({
               </div>
               <div>
                 <div className="text-xs font-bold text-white">
-                  ⚡ Scenario 1: Legitimate Data Purchase
+                  ⚡ 場景一：合法數據採購 (Legitimate Purchase)
                 </div>
                 <div className="text-[11px] text-slate-400">
-                  0.01 USDC · Exact Scheme · ERC-3009 Zero-Gas Settlement
+                  0.01 USDC · Exact 固定計費 · ERC-3009 零手續費秒級結算
                 </div>
               </div>
             </div>
@@ -111,11 +111,11 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({
               </div>
               <div>
                 <div className="text-xs font-bold text-white flex items-center gap-2">
-                  <span>🛑 Scenario 2: Prompt Injection Financial Attack</span>
+                  <span>🛑 場景二：提示詞注入攻擊攔截 (Prompt Injection)</span>
                   <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-rose-950 text-rose-300 border border-rose-600/40">OWASP ASI02</span>
                 </div>
                 <div className="text-[11px] text-slate-400">
-                  Attacker tricks agent to transfer 500 USDC ➔ Policy Gate Blocked!
+                  駭客誘騙 Agent 轉帳 500 USDC ➔ 策略閘門瞬間熔斷阻斷！
                 </div>
               </div>
             </div>
@@ -138,11 +138,11 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({
               </div>
               <div>
                 <div className="text-xs font-bold text-white flex items-center gap-2">
-                  <span>🤝 Scenario 3: A2A Dynamic Negotiation & Staked SLA</span>
+                  <span>🤝 場景三：多代理動態談判與 SLA 抵押擔保</span>
                   <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-purple-950 text-purple-300 border border-purple-600/40">ERC-8004</span>
                 </div>
                 <div className="text-[11px] text-slate-400">
-                  0.05 ➔ 0.03 USDC (40% discount) · Signed EIP-712 · SLA Bond
+                  0.05 ➔ 0.03 USDC (成功砍價 40%) · 雙簽 EIP-712 · SLA 保證金
                 </div>
               </div>
             </div>
@@ -157,9 +157,9 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
             <Shield className="w-3.5 h-3.5 text-blue-400" />
-            8-Step Security Pipeline Telemetry
+            8 步安全支付管線實時遙測 (Security Pipeline)
           </span>
-          <span className="text-[10px] font-mono text-slate-500">x402 v2 Spec</span>
+          <span className="text-[10px] font-mono text-slate-500">x402 v2 官方規範</span>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
@@ -175,7 +175,7 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({
                 className={`p-2.5 rounded-lg border flex flex-col justify-between transition-all ${badgeClass}`}
               >
                 <div className="flex items-center justify-between font-mono text-[10px] mb-1">
-                  <span>Step {step.id}</span>
+                  <span>步驟 {step.id}</span>
                   {step.status === "success" && <CheckCircle2 className="w-3 h-3 text-emerald-400" />}
                   {step.status === "blocked" && <XCircle className="w-3 h-3 text-rose-400" />}
                 </div>
@@ -192,9 +192,9 @@ export const LeftPanel: React.FC<LeftPanelProps> = ({
         <div className="flex items-center justify-between mb-2 text-slate-400 border-b border-slate-800/80 pb-1.5">
           <span className="flex items-center gap-1.5 text-[11px] font-bold">
             <Terminal className="w-3.5 h-3.5 text-cathay-emerald" />
-            Live Guardrail Audit Stream
+            哨兵即時安全審計日誌 (Sentinel Audit Stream)
           </span>
-          <span className="text-[10px] text-emerald-400">Listening to Sentinel Bus</span>
+          <span className="text-[10px] text-emerald-400">已連接安全匯流排</span>
         </div>
         <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
           {logs.slice(-6).map((log, i) => (

@@ -1,5 +1,7 @@
 # Cathay IntentSentinel
 
+[English](README.md) | [繁體中文](README_zh.md)
+
 > **x402 makes agent payments possible; IntentSentinel makes them safe.**
 
 IntentSentinel is a policy-bounded payment gateway for autonomous AI agents.

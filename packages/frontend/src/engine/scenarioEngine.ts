@@ -1,14 +1,14 @@
 import { DashboardState, PipelineStep } from "./types";
 
 export const INITIAL_PIPELINE_STEPS: PipelineStep[] = [
-  { id: 1, name: "Task Trigger", subtext: "Agent requests paid resource", status: "idle" },
-  { id: 2, name: "HTTP 402 Quote", subtext: "Resource server challenges", status: "idle" },
-  { id: 3, name: "Policy Gate", subtext: "6D Intent & OWASP Audit", status: "idle" },
-  { id: 4, name: "Scoped Vault", subtext: "Isolated EIP-712 Signing", status: "idle" },
-  { id: 5, name: "L2 Gas Router", subtext: "Base L2 optimal route", status: "idle" },
-  { id: 6, name: "Facilitator", subtext: "Read-only /verify check", status: "idle" },
-  { id: 7, name: "On-Chain Settle", subtext: "Base Sepolia ERC-3009", status: "idle" },
-  { id: 8, name: "200 OK Delivery", subtext: "Atomic data release", status: "idle" },
+  { id: 1, name: "任務觸發", subtext: "Agent 請求付費資源", status: "idle" },
+  { id: 2, name: "402 報價挑戰", subtext: "資源伺服器挑戰", status: "idle" },
+  { id: 3, name: "策略閘門審核", subtext: "6維意圖與 OWASP 審計", status: "idle" },
+  { id: 4, name: "隔離金庫簽章", subtext: "EIP-712 離線簽署", status: "idle" },
+  { id: 5, name: "L2 Gas 路由", subtext: "挑選 Base L2 最優路徑", status: "idle" },
+  { id: 6, name: "結算中繼驗證", subtext: "/verify 唯讀檢查", status: "idle" },
+  { id: 7, name: "鏈上狀態結算", subtext: "Base Sepolia ERC-3009", status: "idle" },
+  { id: 8, name: "200 OK 交付", subtext: "原子級數據解鎖交付", status: "idle" },
 ];
 
 export const INITIAL_STATE: DashboardState = {
@@ -21,9 +21,9 @@ export const INITIAL_STATE: DashboardState = {
     {
       id: "tx-init-01",
       timestamp: "14:10:02",
-      scenario: "Initial Cold Start",
-      task: "System Self-Test",
-      merchant: "Cathay Verified Gateway",
+      scenario: "初始健康檢查",
+      task: "系統自檢",
+      merchant: "國泰認證閘道 (Cathay Verified)",
       merchantUrl: "https://api.cathay-verified.com/health",
       amount: "0.01 USDC",
       status: "settled",
@@ -34,9 +34,9 @@ export const INITIAL_STATE: DashboardState = {
   ],
   threatAlerts: [],
   agentLogs: [
-    { time: "14:10:00", text: "Sentinel Security Guardrail initialized on Base Sepolia (84532)", type: "info" },
-    { time: "14:10:02", text: "PolicyGate armed: 6-Dimensional Intent validation active (Fail-Closed mode)", type: "success" },
-    { time: "14:10:02", text: "ScopedKeyVault isolated: LLM context cannot access private keys", type: "info" },
+    { time: "14:10:00", text: "哨兵安全護欄已在 Base Sepolia (84532) 初始化完畢", type: "info" },
+    { time: "14:10:02", text: "策略閘門已布防：6 維意圖約束生效中 (預設關閉 Fail-Closed 模式)", type: "success" },
+    { time: "14:10:02", text: "金庫隔離：大模型上下文無法直接讀取或調用私鑰", type: "info" },
   ],
   policyGateArmed: true,
   activeModal: null,
