@@ -10,7 +10,8 @@
     "typecheck": "tsc -b --pretty false",
     "demo:legitimate": "npm --workspace @intent-sentinel/demo run legitimate",
     "demo:prompt-injection": "npm --workspace @intent-sentinel/demo run prompt-injection",
-    "demo:streaming": "npm --workspace @intent-sentinel/demo run streaming"
+    "demo:streaming": "npm --workspace @intent-sentinel/demo run streaming",
+    "demo:a2a": "npm --workspace @intent-sentinel/demo run a2a"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

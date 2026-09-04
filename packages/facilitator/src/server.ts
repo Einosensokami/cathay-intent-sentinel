@@ -63,9 +63,14 @@ export async function handleFacilitatorRequest(request: IncomingMessage, respons
   }
   const result = await facilitator.settle({ ...parsed, idempotency_key: idempotencyKey } as unknown as SettleRequest);
   const requirements = (parsed.paymentRequirements ?? parsed.requirements) as { network?: string } | undefined;
+  const transaction = result.record.explorerUrl ?? result.record.txHash ?? "";
+  const settlementMeta = {
+    ...(result.record.mode ? { mode: result.record.mode } : {}),
+    ...(result.record.simulated !== undefined ? { simulated: result.record.simulated } : {}),
+  };
   const wire = result.ok
-    ? { success: true, transaction: result.record.txHash ?? "", network: requirements?.network ?? "unknown", ...(result.record.payer ? { payer: result.record.payer } : {}) }
-    : { success: false, errorReason: result.record.error ?? "Settlement failed", transaction: result.record.txHash ?? "", network: requirements?.network ?? "unknown", ...(result.record.payer ? { payer: result.record.payer } : {}) };
+    ? { success: true, transaction, ...settlementMeta, ...(result.record.explorerUrl ? { explorerUrl: result.record.explorerUrl } : {}), network: requirements?.network ?? "unknown", ...(result.record.payer ? { payer: result.record.payer } : {}) }
+    : { success: false, errorReason: result.record.error ?? "Settlement failed", transaction, ...settlementMeta, ...(result.record.explorerUrl ? { explorerUrl: result.record.explorerUrl } : {}), network: requirements?.network ?? "unknown", ...(result.record.payer ? { payer: result.record.payer } : {}) };
   json(response, result.status === "unknown" ? 202 : result.ok ? 200 : 409, wire);
 }
 

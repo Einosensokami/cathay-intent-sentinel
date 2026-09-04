@@ -3,4 +3,3 @@ export * from "./settle.js";
 export * from "./server.js";
 export * from "./onchain.js";
 export * from "./router.js";
-export type { PaymentPayload, PaymentRequirements, Erc3009Authorization as TransferAuthorization } from "@cathay/intent-sentinel-core";

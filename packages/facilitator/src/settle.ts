@@ -3,7 +3,13 @@ import type { PaymentPayload, PaymentRequirements } from "@cathay/intent-sentine
 import { verifyPayment, type VerifyOptions, type VerifyResult } from "./verify.js";
 
 export interface TransferSubmitter {
-  submit(payload: PaymentPayload, requirements: PaymentRequirements): Promise<{ txHash: string; receipt?: unknown }>;
+  submit(payload: PaymentPayload, requirements: PaymentRequirements): Promise<{
+    txHash: string;
+    receipt?: unknown;
+    mode?: "onchain" | "mock";
+    simulated?: boolean;
+    explorerUrl?: string;
+  }>;
 }
 
 export class TimeoutUnknownOutcomeError extends Error {
@@ -20,6 +26,9 @@ export interface SettlementRecord {
   created_at: number;
   updated_at: number;
   txHash?: string;
+  explorerUrl?: string;
+  mode?: "onchain" | "mock";
+  simulated?: boolean;
   receipt?: unknown;
   error?: string;
   payer?: string;
@@ -109,19 +118,46 @@ export class Facilitator {
       const payload = (request.paymentPayload ?? request.payload) as PaymentPayload;
       const requirements = (request.paymentRequirements ?? request.requirements) as PaymentRequirements;
       const submitted = await this.options.submitter.submit(payload, requirements);
-      const settled: SettlementRecord = { ...pending, status: "settled", updated_at: this.clock(), txHash: submitted.txHash, receipt: submitted.receipt };
+      const settled: SettlementRecord = {
+        ...pending,
+        status: "settled",
+        updated_at: this.clock(),
+        txHash: submitted.txHash,
+        ...(submitted.explorerUrl ? { explorerUrl: submitted.explorerUrl } : {}),
+        ...(submitted.mode ? { mode: submitted.mode } : {}),
+        ...(submitted.simulated !== undefined ? { simulated: submitted.simulated } : {}),
+        ...(submitted.receipt !== undefined ? { receipt: submitted.receipt } : {}),
+      };
       this.records.set(request.idempotency_key, settled);
       return { ok: true, status: "settled", record: { ...settled }, verification };
     } catch (error) {
       if (unknownOutcome(error)) {
         // Do not release the nonce and do not submit again: a timeout may have
         // succeeded on-chain. The idempotency key now has an unknown outcome.
-        const unknown: SettlementRecord = { ...pending, status: "unknown", updated_at: this.clock(), error: error instanceof Error ? error.message : "Settlement outcome is unknown" };
+        const maybeTxHash = error && typeof error === "object" && typeof (error as { txHash?: unknown }).txHash === "string"
+          ? (error as { txHash: string }).txHash
+          : undefined;
+        const unknown: SettlementRecord = {
+          ...pending,
+          status: "unknown",
+          updated_at: this.clock(),
+          ...(maybeTxHash ? { txHash: maybeTxHash } : {}),
+          error: error instanceof Error ? error.message : "Settlement outcome is unknown",
+        };
         this.records.set(request.idempotency_key, unknown);
         return { ok: false, status: "unknown", record: { ...unknown }, verification };
       }
       await this.options.nonceStore.release?.(verification.nonce);
-      const rejected: SettlementRecord = { ...pending, status: "rejected", updated_at: this.clock(), error: error instanceof Error ? error.message : "Settlement failed" };
+      const maybeTxHash = error && typeof error === "object" && typeof (error as { txHash?: unknown }).txHash === "string"
+        ? (error as { txHash: string }).txHash
+        : undefined;
+      const rejected: SettlementRecord = {
+        ...pending,
+        status: "rejected",
+        updated_at: this.clock(),
+        ...(maybeTxHash ? { txHash: maybeTxHash } : {}),
+        error: error instanceof Error ? error.message : "Settlement failed",
+      };
       this.records.set(request.idempotency_key, rejected);
       return { ok: false, status: "rejected", record: { ...rejected }, verification };
     }

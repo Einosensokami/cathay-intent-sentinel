@@ -6,6 +6,12 @@
     "composite": true,
     "declaration": true
   },
-  "references": [{ "path": "../agent-client" }],
+  "references": [
+    { "path": "../core" },
+    { "path": "../key-vault" },
+    { "path": "../policy-engine" },
+    { "path": "../facilitator" },
+    { "path": "../agent-client" }
+  ],
   "include": ["src/**/*.ts"]
 }
