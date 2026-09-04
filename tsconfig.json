@@ -6,6 +6,7 @@
     { "path": "./packages/policy-engine" },
     { "path": "./packages/facilitator" },
     { "path": "./packages/agent-client" },
+    { "path": "./packages/api" },
     { "path": "./packages/demo" }
   ]
 }
