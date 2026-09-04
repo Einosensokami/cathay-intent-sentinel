@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { FlaskConical, LayoutDashboard, ShieldCheck, SlidersHorizontal } from "lucide-react";
 import { ApiError, createApiClient, createCorrelationId, getRuntimeConfig, type SettleResponse, type VerifyRequest } from "./api/client";
 import { isVerifiedLiveSettlement, safeExplorerUrl } from "./api/evidence";
 import { Header } from "./components/Header";
+import { BudgetGauge } from "./components/BudgetGauge";
+import { IntentPlayground, type CustomIntent } from "./components/IntentPlayground";
 import { LeftPanel } from "./components/LeftPanel";
+import { PolicyInspector } from "./components/PolicyInspector";
 import { RightPanel } from "./components/RightPanel";
+import { SecurityAuditView } from "./components/SecurityAuditView";
 import { StixModal } from "./components/StixModal";
 import { TxReceiptModal } from "./components/TxReceiptModal";
-import type { CustomIntent } from "./components/LeftPanel";
 import type { PolicyState } from "./components/PolicyInspector";
 import { ATTACK_THREAT, INITIAL_TRANSACTIONS, PIPELINE_TEMPLATE } from "./data";
 import type { PipelineStep, RunState, Scenario, ThreatRecord, Transaction } from "./types";
@@ -18,8 +22,17 @@ const clock = () => new Intl.DateTimeFormat("zh-TW", { hour: "2-digit", minute: 
 
 interface RunContext { correlationId: string; idempotencyKey: string; }
 interface PolicyEvaluation { scenario: Scenario; blocked: boolean; reason: string; owaspDetected: boolean; amount: number; merchant: string; resource: string; }
+type WorkspaceTab = "live" | "playground" | "policy" | "security";
+
+const workspaceTabs = [
+  { id: "live" as const, icon: LayoutDashboard, label: "🛰️ 即時哨兵與支付管線", shortLabel: "即時哨兵", english: "Live Sentinel" },
+  { id: "playground" as const, icon: FlaskConical, label: "🧪 自訂 Intent 測試沙盒", shortLabel: "Intent 沙盒", english: "Intent Playground" },
+  { id: "policy" as const, icon: SlidersHorizontal, label: "🎛️ CFO 政策與金庫設定", shortLabel: "CFO 政策", english: "Policy & Treasury" },
+  { id: "security" as const, icon: ShieldCheck, label: "🛡️ 資安審計與威脅情報", shortLabel: "資安審計", english: "Security & Audit" },
+];
 
 export default function App() {
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>("live");
   const [mode, setMode] = useState<"mock" | "live">(import.meta.env.VITE_EXECUTION_MODE === "live" ? "live" : "mock");
   const [connection, setConnection] = useState<"connected" | "connecting" | "offline">(mode === "mock" ? "connected" : "connecting");
   const [runState, setRunState] = useState<RunState>("idle");
@@ -32,7 +45,9 @@ export default function App() {
   const [selectedThreat, setSelectedThreat] = useState<ThreatRecord | null>(null);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
-  const [policy, setPolicy] = useState<PolicyState>({ perTxCap: 1, strictAllowlist: true, owaspProtection: true });
+  const [policy, setPolicy] = useState<PolicyState>({ perTxCap: 1, strictAllowlist: true, owaspProtection: true, owaspLevel: "strict" });
+  const [activeCorrelationId, setActiveCorrelationId] = useState<string | null>(null);
+  const [lastRunCustom, setLastRunCustom] = useState(false);
   const runToken = useRef(0);
   const retryContext = useRef<RunContext | null>(null);
   const retryIntent = useRef<CustomIntent | null>(null);
@@ -68,7 +83,9 @@ export default function App() {
     const context = suppliedContext ?? { correlationId: createCorrelationId(), idempotencyKey: `settle-${createCorrelationId()}` };
     retryContext.current = context;
     retryIntent.current = customIntent ?? null;
-    const evaluation = customIntent ? evaluateCustomIntent(customIntent, policy) : quickEvaluation(next);
+    setActiveCorrelationId(context.correlationId);
+    setLastRunCustom(Boolean(customIntent));
+    const evaluation = customIntent ? evaluateCustomIntent(customIntent, policy) : quickEvaluation(next, policy);
     const token = ++runToken.current;
     setRunState("running"); setScenario(evaluation.scenario); setThreat(null); setError(null);
     setSteps(PIPELINE_TEMPLATE.map((step) => ({ ...step })));
@@ -76,7 +93,11 @@ export default function App() {
 
     if (mode === "mock") {
       await runMock(evaluation, context, customIntent, stale, updateStep, (transaction) => setTransactions((items) => [transaction, ...items]));
-      if (!stale()) { if (evaluation.owaspDetected) setThreat(ATTACK_THREAT); setRunState(evaluation.blocked ? "blocked" : "settled"); }
+      if (!stale()) {
+        if (evaluation.owaspDetected) setThreat(ATTACK_THREAT);
+        if (!evaluation.blocked) { setBalance((value) => value - evaluation.amount); setSpent((value) => value + evaluation.amount); }
+        setRunState(evaluation.blocked ? "blocked" : "settled");
+      }
       return;
     }
 
@@ -133,7 +154,7 @@ export default function App() {
 
   const switchMode = useCallback((next: "mock" | "live") => {
     if (runState === "running" || next === mode) return;
-    setMode(next); setRunState("idle"); setScenario(null); setThreat(null); setError(null); setSteps(PIPELINE_TEMPLATE.map((step) => ({ ...step })));
+    setMode(next); setRunState("idle"); setScenario(null); setThreat(null); setError(null); setActiveCorrelationId(null); setLastRunCustom(false); setSteps(PIPELINE_TEMPLATE.map((step) => ({ ...step })));
   }, [mode, runState]);
 
   const retry = useCallback(() => {
@@ -144,17 +165,22 @@ export default function App() {
   return <div className="min-h-screen bg-cyber text-slate-300">
     <div className="ambient-grid" aria-hidden="true" />
     <Header balance={balance} defending={defending} mode={mode} connection={connection} onModeChange={switchMode} liveConfigured={runtime.liveConfigured} />
-    <main className="relative mx-auto max-w-[1600px] px-5 py-6 lg:px-8 lg:py-8">
-      <div className="mb-7 flex flex-wrap items-center justify-between gap-3 border-b border-line/60 pb-5">
-        <div><p className="font-mono text-[10px] uppercase tracking-[0.22em] text-cathay-light">Treasury workspace / Live controls</p><h1 className="mt-2 text-xl font-semibold tracking-[-0.035em] text-white sm:text-2xl">每個意圖，都必須通過財務邊界。</h1></div>
-        <p className="max-w-md text-right text-[10px] leading-4 text-slate-600">推理代理提出方案，IntentSentinel 作出決策；只有通過政策的 payload 才能進入簽署邊界。</p>
-      </div>
+    <main className="workspace-shell">
+      <div className="workspace-hero"><div><p>Treasury workspace / Intent control plane</p><h1>每個意圖，都必須通過財務邊界。</h1></div><p>推理代理提出方案，IntentSentinel 作出決策；只有通過政策的 payload 才能進入簽署邊界。</p></div>
+      <nav className="workspace-tabs" role="tablist" aria-label="IntentSentinel 工作區">{workspaceTabs.map(({ id, icon: Icon, label, shortLabel, english }) => <button key={id} type="button" id={`tab-${id}`} role="tab" aria-selected={activeTab === id} aria-controls={`panel-${id}`} className={activeTab === id ? "active" : ""} onClick={() => setActiveTab(id)}><Icon size={17} /><span><strong>{label}</strong><small>{english}</small></span><em>{shortLabel}</em>{id === "security" && threat && <i aria-label="有新的威脅事件" />}</button>)}</nav>
       {error && <ErrorBanner error={error} onRetry={runState === "failed" || runState === "unknown" ? retry : undefined} />}
-      <div className="grid items-start gap-8 lg:grid-cols-[minmax(390px,0.88fr)_minmax(560px,1.45fr)]"><LeftPanel runState={runState} activeScenario={scenario} steps={steps} onRun={(value) => void run(value)} onRunCustom={runCustom} mode={mode} connection={connection} /><RightPanel spent={spent} defending={defending} transactions={transactions} threat={threat} policy={policy} onPolicyChange={(change) => setPolicy((current) => ({ ...current, ...change }))} onInspectTx={setSelectedTx} onInspectThreat={setSelectedThreat} /></div>
+      <section id="panel-live" role="tabpanel" aria-labelledby="tab-live" hidden={activeTab !== "live"} className="workspace-panel"><ViewHeading eyebrow="01 / Live Sentinel" title="即時哨兵與支付管線" description="以單一決策視角監看代理請求、政策閘門、結算證據與當前威脅。" /><div className="live-layout"><LeftPanel runState={runState} activeScenario={scenario} steps={steps} onRun={(value) => void run(value)} mode={mode} connection={connection} correlationId={activeCorrelationId} /><RightPanel spent={spent} transactions={transactions} threat={threat} policy={policy} onInspectTx={setSelectedTx} onInspectThreat={setSelectedThreat} /></div></section>
+      <section id="panel-playground" role="tabpanel" aria-labelledby="tab-playground" hidden={activeTab !== "playground"} className="workspace-panel"><ViewHeading eyebrow="02 / Intent Playground" title="自訂 Intent 測試沙盒" description="為評審與測試者提供完整輸入面板，送出前即可看到政策判定。" /><IntentPlayground policy={policy} runState={runState} steps={steps} correlationId={activeCorrelationId} isCurrentRun={lastRunCustom} onRunCustom={runCustom} onOpenLive={() => setActiveTab("live")} evaluate={(intent) => evaluateCustomIntent(intent, policy)} /></section>
+      <section id="panel-policy" role="tabpanel" aria-labelledby="tab-policy" hidden={activeTab !== "policy"} className="workspace-panel"><ViewHeading eyebrow="03 / Policy & Treasury" title="CFO 政策與金庫設定" description="集中調整授權上限、商戶邊界與 OWASP Agentic Security 防禦等級。" /><div className="treasury-overview"><div><span>可用金庫餘額</span><strong>${balance.toLocaleString("en-US", { minimumFractionDigits: 2 })}</strong><small>USDC · Base Sepolia</small></div><div><span>目前 Per-Tx Cap</span><strong>${policy.perTxCap.toFixed(3)}</strong><small>同步至全域政策狀態</small></div><BudgetGauge spent={spent} /></div><PolicyInspector defending={defending} policy={policy} onPolicyChange={(change) => setPolicy((current) => ({ ...current, ...change }))} /></section>
+      <section id="panel-security" role="tabpanel" aria-labelledby="tab-security" hidden={activeTab !== "security"} className="workspace-panel"><ViewHeading eyebrow="04 / Security & Audit" title="資安審計與威脅情報" description="從交易事件一路追溯至 STIX 情報、correlation ID 與密碼學證據。" /><SecurityAuditView transactions={transactions} threat={threat} knownThreat={ATTACK_THREAT} onInspectTx={setSelectedTx} onInspectThreat={setSelectedThreat} /></section>
     </main>
-    <footer className="relative mx-auto flex max-w-[1600px] flex-wrap justify-between gap-2 border-t border-line/50 px-5 py-4 font-mono text-[9px] uppercase tracking-wider text-slate-700 lg:px-8"><span>IntentSentinel 瀏覽器控制台</span><span>{mode === "mock" ? "Mock：不會移動資金／不會產生鏈上連結" : "Live：僅顯示已確認的鏈上證據"}</span></footer>
+    <footer className="workspace-footer"><span>IntentSentinel 瀏覽器控制台</span><span>{mode === "mock" ? "Mock：不會移動資金／不會產生鏈上連結" : "Live：僅顯示已確認的鏈上證據"}</span></footer>
     <StixModal threat={selectedThreat} onClose={() => setSelectedThreat(null)} /><TxReceiptModal transaction={selectedTx} onClose={() => setSelectedTx(null)} />
   </div>;
+}
+
+function ViewHeading({ eyebrow, title, description }: { eyebrow: string; title: string; description: string }) {
+  return <div className="view-heading-new"><div><p>{eyebrow}</p><h2>{title}</h2></div><p>{description}</p></div>;
 }
 
 async function runMock(evaluation: PolicyEvaluation, context: RunContext, customIntent: CustomIntent | undefined, stale: () => boolean, updateStep: (index: number, state: PipelineStep["state"]) => void, add: (transaction: Transaction) => void): Promise<void> {
@@ -166,7 +192,7 @@ async function runMock(evaluation: PolicyEvaluation, context: RunContext, custom
     if (evaluation.blocked && index === 3) { updateStep(index, "blocked"); add(deniedTransaction(context, evaluation.reason, "mock", customIntent)); return; }
     updateStep(index, "complete");
   }
-  add({ id: `MOCK-${Math.floor(Math.random() * 0xffff).toString(16).toUpperCase().padStart(4, "0")}`, time: clock(), merchant: evaluation.merchant, resource: evaluation.resource, amount: `${evaluation.amount.toFixed(3)} USDC`, status: "settled", mode: "mock", verified: false, network: "Base Sepolia · 84532", reason: customIntent ? "Custom Intent 已通過目前政策；僅供流程展示，未提交鏈上交易" : "Mock receipt：僅供流程展示，未提交鏈上交易" });
+  add({ id: `MOCK-${Math.floor(Math.random() * 0xffff).toString(16).toUpperCase().padStart(4, "0")}`, time: clock(), merchant: evaluation.merchant, resource: evaluation.resource, amount: `${evaluation.amount.toFixed(3)} USDC`, status: "settled", mode: "mock", verified: false, network: "Base Sepolia · 84532", correlationId: context.correlationId, reason: customIntent ? "Custom Intent 已通過目前政策；僅供流程展示，未提交鏈上交易" : "Mock receipt：僅供流程展示，未提交鏈上交易" });
 }
 
 function livePaymentRequest(evaluation: PolicyEvaluation, customIntent?: CustomIntent): VerifyRequest {
@@ -186,11 +212,17 @@ function deniedTransaction(context: RunContext, reason: string, mode: "mock" | "
 function amountFor(scenario: Scenario): number { return scenario === "negotiation" ? 0.036 : 0.01; }
 function asApiError(reason: unknown, fallback: string, context?: RunContext): ApiError { return reason instanceof ApiError ? reason : new ApiError(fallback, { code: "CLIENT_ERROR", correlationId: context?.correlationId }); }
 
-function quickEvaluation(scenario: Scenario): PolicyEvaluation { return { scenario, blocked: scenario === "attack", reason: scenario === "attack" ? "Prompt Injection 已被 OWASP ASI01 攔截；未進入簽署邊界" : "快速情境已通過政策", owaspDetected: scenario === "attack", amount: scenario === "attack" ? 500 : amountFor(scenario), merchant: scenario === "negotiation" ? "DataMesh Agent" : "AlphaSense MCP", resource: scenario === "negotiation" ? "/a2a/credit-risk-stream" : "/v1/market-intel/q3" }; }
+function quickEvaluation(scenario: Scenario, policy: PolicyState): PolicyEvaluation {
+  const amount = scenario === "attack" ? 500 : amountFor(scenario);
+  const overCap = amount > policy.perTxCap;
+  const attackBlocked = scenario === "attack";
+  const reason = attackBlocked && policy.owaspProtection ? "Prompt Injection 已被 OWASP ASI01 攔截；未進入簽署邊界" : overCap ? `金額 ${amount.toFixed(3)} USDC 超過單筆上限 $${policy.perTxCap.toFixed(3)}` : attackBlocked ? "高風險異常金額已被支出上限攔截" : "快速情境已通過政策";
+  return { scenario, blocked: attackBlocked || overCap, reason, owaspDetected: scenario === "attack" && policy.owaspProtection, amount, merchant: scenario === "negotiation" ? "DataMesh Agent" : "AlphaSense MCP", resource: scenario === "negotiation" ? "/a2a/credit-risk-stream" : "/v1/market-intel/q3" };
+}
 
 function evaluateCustomIntent(intent: CustomIntent, policy: PolicyState): PolicyEvaluation {
   const details = customDetails(intent);
-  const suspicious = /惡意|提權|忽略|越權|大額轉帳|override|ignore previous|system prompt|admin|privilege|transfer all/i.test(intent.prompt);
+  const suspicious = isSuspiciousPrompt(intent.prompt, policy.owaspLevel);
   const owaspDetected = suspicious && policy.owaspProtection;
   const reasons: string[] = [];
   if (!Number.isFinite(details.amount) || details.amount <= 0) reasons.push("金額格式無效");
@@ -198,6 +230,13 @@ function evaluateCustomIntent(intent: CustomIntent, policy: PolicyState): Policy
   if (policy.strictAllowlist && !isAllowedMerchant(intent.merchantUrl)) reasons.push("商戶不在嚴格白名單");
   if (owaspDetected) reasons.push("OWASP ASI01 Prompt Injection 已攔截");
   return { scenario: suspicious ? "attack" : "legitimate", blocked: reasons.length > 0, reason: reasons.join(" · ") || "Custom Intent 已通過目前政策", owaspDetected, amount: Number.isFinite(details.amount) && details.amount > 0 ? details.amount : 0, merchant: details.merchant, resource: details.resource };
+}
+
+function isSuspiciousPrompt(prompt: string, level: PolicyState["owaspLevel"]): boolean {
+  const standard = /override|ignore previous|system prompt|transfer all|忽略(?:先前|政策)|大額轉帳/i;
+  const strict = /惡意|提權|越權|admin|privilege|bypass|drain|wallet|變更收款|解除限制/i;
+  const maximum = /secret|credential|seed phrase|private key|authorization|root|無視|不要告知|隱藏交易/i;
+  return standard.test(prompt) || (level !== "standard" && strict.test(prompt)) || (level === "maximum" && maximum.test(prompt));
 }
 
 function customDetails(intent: CustomIntent): { amount: number; merchant: string; resource: string } { try { const url = new URL(intent.merchantUrl); return { amount: Number.parseFloat(intent.amount), merchant: url.hostname, resource: `${url.pathname}${url.search}` || "/" }; } catch { return { amount: Number.parseFloat(intent.amount), merchant: "Invalid merchant URL", resource: "/" }; } }
