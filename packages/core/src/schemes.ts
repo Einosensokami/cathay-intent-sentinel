@@ -78,3 +78,18 @@ export function assertExactEip3009Requirements(requirements: PaymentRequirements
     throw new Error("exact EIP-3009 requires assetTransferMethod=eip3009");
   }
 }
+
+export function assertUptoPermit2Requirements(requirements: PaymentRequirements): asserts requirements is PaymentRequirements & {
+  scheme: "upto";
+  extra: JsonObject & { assetTransferMethod: "permit2" };
+} {
+  if (requirements.scheme !== "upto") throw new Error("upto scheme is required");
+  if (!UPTO_PERMIT2_SPEC.supportedNetworks.some((network) => network === requirements.network)) throw new Error("unsupported Base network");
+  if (requirements.extra?.assetTransferMethod !== UPTO_PERMIT2) throw new Error("upto EVM requires assetTransferMethod=permit2");
+}
+
+/** Batch payload details remain network-binding-specific; unsupported bindings fail closed. */
+export function assertBatchSettlementRequirements(requirements: PaymentRequirements): asserts requirements is PaymentRequirements & { scheme: "batch-settlement" } {
+  if (requirements.scheme !== BATCH_SETTLEMENT) throw new Error("batch-settlement scheme is required");
+  if (!BATCH_SETTLEMENT_SPEC.supportedNetworks.some((network) => network === requirements.network)) throw new Error("unsupported Base network");
+}

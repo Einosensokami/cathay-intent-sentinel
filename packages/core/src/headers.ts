@@ -29,15 +29,6 @@ function decodeJson<T>(encoded: string, headerName: string): T {
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     throw new InvalidPaymentHeaderError(`${headerName} must contain a JSON object`);
   }
-  const obj = parsed as { x402Version?: unknown };
-  if (obj.x402Version !== undefined && obj.x402Version !== X402_VERSION) {
-    throw new InvalidPaymentHeaderError(`${headerName} requires x402Version=2`);
-  }
-  if (headerName === PAYMENT_REQUIRED_HEADER || headerName === PAYMENT_SIGNATURE_HEADER) {
-    if (obj.x402Version !== X402_VERSION) {
-      throw new InvalidPaymentHeaderError(`${headerName} requires x402Version=2`);
-    }
-  }
   return parsed as T;
 }
 
@@ -50,7 +41,11 @@ export function encodePaymentRequired(value: PaymentRequired): string {
 }
 
 export function decodePaymentRequired(value: string): PaymentRequired {
-  return decodeJson<PaymentRequired>(value, PAYMENT_REQUIRED_HEADER);
+  const result = decodeJson<PaymentRequired>(value, PAYMENT_REQUIRED_HEADER);
+  if (result.x402Version !== X402_VERSION) {
+    throw new InvalidPaymentHeaderError(`${PAYMENT_REQUIRED_HEADER} requires x402Version=2`);
+  }
+  return result;
 }
 
 export function encodePaymentPayload(value: PaymentPayload): string {
@@ -58,7 +53,11 @@ export function encodePaymentPayload(value: PaymentPayload): string {
 }
 
 export function decodePaymentPayload(value: string): PaymentPayload {
-  return decodeJson<PaymentPayload>(value, PAYMENT_SIGNATURE_HEADER);
+  const result = decodeJson<PaymentPayload>(value, PAYMENT_SIGNATURE_HEADER);
+  if (result.x402Version !== X402_VERSION) {
+    throw new InvalidPaymentHeaderError(`${PAYMENT_SIGNATURE_HEADER} requires x402Version=2`);
+  }
+  return result;
 }
 
 export function encodeSettlementResponse(value: SettlementResponse): string {

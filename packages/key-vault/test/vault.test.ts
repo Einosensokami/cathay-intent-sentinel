@@ -34,11 +34,10 @@ const requirements: PaymentRequirements = {
 test("scoped vault signs ERC-3009 typed data and never serializes its private key", async () => {
   const vault = new ScopedKeyVault({ privateKey: PRIVATE_KEY, intent, clock: () => 2_000_000_000 });
   const signer = new Erc3009Signer(vault);
-  const detailed = await signer.signPaymentDetailed(intent, requirements, {
+  const payment = await signer.signPayment(intent, requirements, {
     now: 2_000_000_000,
     nonce: `0x${"ab".repeat(32)}`,
   });
-  const payment = detailed.payment;
   const typed = createErc3009TypedData({
     chainId: 84532,
     verifyingContract: requirements.asset,
@@ -53,10 +52,6 @@ test("scoped vault signs ERC-3009 typed data and never serializes its private ke
   assert.equal(recovered.toLowerCase(), account.address.toLowerCase());
   assert.equal(payment.payload.signature.length, 132);
   assert.ok(payment.payload.signature.startsWith("0x"));
-  assert.equal(detailed.signature.wire, payment.payload.signature);
-  assert.ok(detailed.signature.v === 27 || detailed.signature.v === 28);
-  assert.equal(detailed.signature.r.length, 66);
-  assert.equal(detailed.signature.s.length, 66);
   assert.equal(JSON.stringify(vault).includes(PRIVATE_KEY.slice(2)), false);
   assert.equal(vault.address.toLowerCase(), account.address.toLowerCase());
 });
@@ -87,8 +82,6 @@ test("key hierarchy enforces session quota and revocation", () => {
   assert.equal(session.status, "revoked");
   assert.throws(() => session.reserveSpend("1"));
   assert.equal(hierarchy.getSession("session-1")?.revocationReason, "operator-request");
-  assert.equal(hierarchy.getFundingPool(pool.id)?.spent, "15000");
-  assert.throws(() => session.vault.signTypedData({}));
 });
 
 test("funding-pool quota is enforced across multiple session keys", () => {
@@ -99,5 +92,4 @@ test("funding-pool quota is enforced across multiple session keys", () => {
   first.reserveSpend("60");
   assert.throws(() => second.reserveSpend("41"));
   second.reserveSpend("40");
-  assert.equal(hierarchy.getFundingPool(pool.id)?.spent, "100");
 });

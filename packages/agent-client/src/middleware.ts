@@ -130,11 +130,12 @@ async function settleWithFacilitator(
   const endpoint = `${facilitator.replace(/\/$/, "")}/settle`;
   const response = await fetcher(endpoint, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", "idempotency-key": input.paymentSignature.authorization.nonce },
     body: JSON.stringify({
       paymentSignature: input.paymentSignature,
       paymentRequired: input.paymentRequired,
       resource: input.request.url,
+      idempotencyKey: input.paymentSignature.authorization.nonce,
     }),
   });
   return normalizeSettlementResponse(response);

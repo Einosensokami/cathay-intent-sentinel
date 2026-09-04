@@ -35,7 +35,7 @@ export function wrapFetchWithPayment(
 ): PaymentFetch {
   let client: ControlledRetryClient;
   if (first instanceof ControlledRetryClient) {
-    client = first;
+    client = second && typeof second === "function" ? first.withFetch(second) : first;
     if (second && typeof second !== "function") {
       throw new TypeError("A client cannot be combined with client options");
     }

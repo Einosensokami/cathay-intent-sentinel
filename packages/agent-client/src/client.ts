@@ -89,6 +89,12 @@ export interface PolicyGate {
   ): Promise<PolicyDecision> | PolicyDecision;
 }
 
+export type PolicyGateLike = PolicyGate | ((
+  intent: PaymentIntent,
+  requirement: PaymentRequirements,
+  context: RequestContext,
+) => Promise<PolicyDecision> | PolicyDecision);
+
 export interface PaymentSigner {
   sign(
     intent: PaymentIntent,
@@ -104,7 +110,7 @@ export type FetchLike = (
 
 export interface AgentClientOptions {
   fetch?: FetchLike;
-  policyGate: PolicyGate;
+  policyGate: PolicyGateLike;
   signer: PaymentSigner;
   bindIntent?: (
     requirement: PaymentRequirements,
@@ -274,10 +280,17 @@ function signedToPayload(
   }
   const signedValue = amountAsBigInt(authorization.value);
   const cap = amountAsBigInt(intent.maxAmount);
+  const quoteAmount = amountAsBigInt(requirement.amount);
   if (signedValue <= 0n || signedValue > cap) {
     throw new PaymentProtocolError("Signer authorization exceeds the approved intent", {
       value: authorization.value,
       maxAmount: intent.maxAmount,
+    });
+  }
+  if (signedValue > quoteAmount || (requirement.scheme === "exact" && signedValue !== quoteAmount)) {
+    throw new PaymentProtocolError("Signer authorization does not match the quoted amount", {
+      value: authorization.value,
+      quotedAmount: requirement.amount,
     });
   }
   return {
@@ -329,7 +342,9 @@ export class ControlledRetryClient {
     if (intent.expiresAt <= now) throw new PaymentProtocolError("Bound payment intent is already expired");
     this.emit({ type: "intent-bound", intent });
 
-    const decision = await this.options.policyGate.evaluate(intent, requirement, context);
+    const decision = await (typeof this.options.policyGate === "function"
+      ? this.options.policyGate(intent, requirement, context)
+      : this.options.policyGate.evaluate(intent, requirement, context));
     this.emit({ type: "policy", decision, intent });
     if (!decision.allowed) throw new PaymentPolicyError(decision, intent);
 
@@ -357,6 +372,11 @@ export class ControlledRetryClient {
       // Observability must never change the payment decision.
     }
   }
+
+  /** Clone the client with an adapter fetcher, useful for tests and runtimes. */
+  withFetch(fetcher: FetchLike): ControlledRetryClient {
+    return new ControlledRetryClient({ ...this.options, fetch: fetcher });
+  }
 }
 
 export function createPaymentIntent(
@@ -366,3 +386,6 @@ export function createPaymentIntent(
 ): PaymentIntent {
   return defaultBindIntent(requirement, request, context, Date.now());
 }
+
+/** Friendly alias for applications that do not need the protocol-specific name. */
+export const AgentClient = ControlledRetryClient;

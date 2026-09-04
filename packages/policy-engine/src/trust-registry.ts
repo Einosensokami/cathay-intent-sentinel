@@ -15,8 +15,11 @@ export interface MerchantReputation {
 }
 
 export interface MerchantRecord {
-  identity: MerchantIdentity;
-  reputation: MerchantReputation;
+  identity?: MerchantIdentity;
+  reputation?: MerchantReputation;
+  address?: string;
+  merchant_url?: string;
+  reputation_score?: number;
   revoked?: boolean;
 }
 
@@ -35,12 +38,14 @@ export class InMemoryTrustRegistry implements TrustRegistry {
   private readonly records = new Map<string, MerchantRecord>();
 
   register(record: MerchantRecord): void {
-    const address = getAddress(record.identity.address).toLowerCase();
-    if (!/^https:\/\//i.test(record.identity.merchant_url)) throw new TypeError("Merchant URL must use HTTPS");
-    if (!Number.isFinite(record.reputation.score) || record.reputation.score < 0 || record.reputation.score > 100) {
+    const identity = record.identity ?? { address: record.address ?? "", merchant_url: record.merchant_url ?? "" };
+    const reputation = record.reputation ?? { score: record.reputation_score ?? 0, successful_settlements: 0, disputes: 0, last_updated: 0 };
+    const address = getAddress(identity.address).toLowerCase();
+    if (!/^https:\/\//i.test(identity.merchant_url)) throw new TypeError("Merchant URL must use HTTPS");
+    if (!Number.isFinite(reputation.score) || reputation.score < 0 || reputation.score > 100) {
       throw new TypeError("Reputation score must be between 0 and 100");
     }
-    this.records.set(address, { ...record, identity: { ...record.identity, address } });
+    this.records.set(address, { ...record, identity: { ...identity, address }, reputation });
   }
 
   revoke(address: string): void {
@@ -55,9 +60,11 @@ export class InMemoryTrustRegistry implements TrustRegistry {
     const record = this.records.get(key);
     if (!record) return { verified: false, reason: "Merchant identity is not registered" };
     if (record.revoked) return { verified: false, reason: "Merchant identity is revoked" };
-    if (!record.identity || record.identity.merchant_url !== merchantUrl) return { verified: false, reason: "Merchant URL does not match registered identity" };
-    if (!record.reputation || record.reputation.score < 50) return { verified: false, reason: "Merchant reputation is below the minimum threshold" };
-    return { verified: true, reason: "Merchant identity and reputation verified", identity: record.identity, reputation: record.reputation };
+    const identity = record.identity;
+    const reputation = record.reputation;
+    if (!identity || identity.merchant_url !== merchantUrl) return { verified: false, reason: "Merchant URL does not match registered identity" };
+    if (!reputation || reputation.score < 50) return { verified: false, reason: "Merchant reputation is below the minimum threshold" };
+    return { verified: true, reason: "Merchant identity and reputation verified", identity, reputation };
   }
 }
 
