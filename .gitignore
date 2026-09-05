@@ -6,6 +6,8 @@ package-lock.json.bak
 dist/
 *.tsbuildinfo
 .tscache/
+.turbo/
+.cache/
 
 # Environment & Sensitive keys
 .env
@@ -15,17 +17,27 @@ dist/
 *.secret
 id_rsa*
 *.log
+*.sqlite
+*.db
 
 # Operating System & IDE
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
+.claude/
+.codex/
 
-# Temporary Codex prompts & worker scratch files
-prompt*.txt
-worker*.txt
+# Media & Audio demos
+audio_demo/
+*.mp3
+*.wav
+*.mp4
+*.m4a
+*.mov
+
+# Temporary prompts, worker scratch files & internal notes
+*.txt
+*.scratch.md
 *prompt*.txt
-decision_prompt.txt
-grill_prompt.txt
-*_prompt.txt
+worker*.txt
