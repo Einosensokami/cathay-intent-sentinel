@@ -146,7 +146,7 @@ args = ["/path/to/cathay-intent-sentinel/packages/mcp-server/dist/cli.js", "mcp"
 
 ## 作品展示
 
-- **Web 控制台展示網址**：https://cathay-intent-sentinel.netlify.app (或本地 `http://localhost:5173`)
+- **Web 控制台展示網址**：https://cathay-intent-sentinel.netlify.app/
 - **評選影片**：*（錄製完成後附上影片連結）*
 
 ### 📸 演示亮點預覽
