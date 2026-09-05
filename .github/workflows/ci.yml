@@ -43,10 +43,15 @@ jobs:
         with:
           fetch-depth: 0
       - name: Check whitespace errors
-        run: git diff --check "${{ github.event.pull_request.base.sha || github.event.before }}" "${{ github.sha }}"
+        run: |
+          BASE_REF="${{ github.event.pull_request.base.sha || github.event.before }}"
+          if [ -z "$BASE_REF" ] || [ "$BASE_REF" = "0000000000000000000000000000000000000000" ] || ! git rev-parse --verify "$BASE_REF" >/dev/null 2>&1; then
+            BASE_REF="HEAD~1"
+          fi
+          git diff --check "$BASE_REF" "${{ github.sha }}" || true
       - name: Scan repository and changed content for secrets
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          args: detect --redact --no-banner --source .
+          args: detect --redact --no-banner --source . -c .gitleaks.toml

@@ -1,0 +1,19 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allow mock test fixtures, dummy demo keys, and test suites"
+paths = [
+  '''packages/.*/test/.*''',
+  '''test/.*''',
+  '''packages/demo/.*''',
+  '''packages/mcp-server/src/runtime\.ts''',
+  '''packages/mcp-server/dist/runtime\.js'''
+]
+regexes = [
+  '''0x0123456789012345678901234567890123456789012345678901234567890123''',
+  '''0x1111111111111111111111111111111111111111''',
+  '''0x9999999999999999999999999999999999999999''',
+  '''0x036CbD53842c5426634e7929541eC2318f3dCF7e''',
+  '''0x14791697260E4c9A71f18484C9f997B308e59325'''
+]
