@@ -8,6 +8,7 @@
     { "path": "./packages/agent-client" },
     { "path": "./packages/api" },
     { "path": "./packages/demo" },
-    { "path": "./packages/mcp-server" }
+    { "path": "./packages/mcp-server" },
+    { "path": "./packages/marketplace" }
   ]
 }
