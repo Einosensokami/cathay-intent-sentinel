@@ -1,118 +1,78 @@
-# IntentSentinel production operations
+# IntentSentinel 生產維運與部屬手冊 (Operations Runbook)
 
-This runbook covers the frontend container and the facilitator API. The
-facilitator package is a library: `infra/facilitator-server.mjs` is the
-deployment wrapper and requires a production adapter for the signer, balance
-reader, and durable nonce store.
+本文件定義 IntentSentinel 於容器化、Kubernetes 或雲端環境下的維運拓撲、安全性加固、監控告警與超時對帳指引。
 
-## Service topology
+---
+
+## 1. 服務拓撲架構 (Service Topology)
 
 ```text
-browser -> TLS/reverse proxy -> frontend (nginx:8080)
-                         \-> facilitator API (8081) -> policy boundary
-                                                        \-> RPC provider
-                                                        \-> KMS/HSM signer
-                                                        \-> durable nonce/audit stores
+瀏覽器 (Client) ──► TLS / Ingress 反向代理 (HTTPS)
+                         │
+                         ├──► 前端容器 (Nginx :8080)
+                         └──► Facilitator API 容器 (:8081) ──► 政策風控閘門
+                                                                  ├──► Base Sepolia RPC
+                                                                  ├──► KMS / HSM 簽章服務
+                                                                  └──► Nonce / 審計持久化儲存
 ```
 
-Terminate TLS at the managed ingress, keep the API private where possible,
-and allow the browser origin only through the authenticated API gateway. Do
-not expose an RPC endpoint, signer, nonce store, or audit database directly to
-the browser.
+- **網路隔離原則**：TLS 憑證於 Ingress 入口卸載；Facilitator API 僅對內部或授權代理人開放；RPC 節點、KMS 金鑰與審計資料庫嚴禁對公網直接暴露。
 
-## Configuration
+---
 
-Start from [`infra/.env.example`](../infra/.env.example) and
-[`infra/.env.frontend.example`](../infra/.env.frontend.example). Templates are
-placeholders only. Populate production values through the platform secret
-manager or workload identity, never through a committed file or a Docker
-build argument.
+## 2. 容器化建置與本地快速測試 (Build & Local Smoke Test)
 
-`FACILITATOR_ADAPTER_MODULE` must point to an adapter supplied by the
-deployment image or secret-mounted runtime. The adapter must use KMS/HSM or a
-remote signer and a transactional, durable nonce/idempotency store. A raw
-private key or mnemonic is not an accepted production configuration.
-
-The compose file is a local smoke-test profile. Its explicit
-`FACILITATOR_RUNTIME_MODE=mock` setting creates no real settlement and must
-not be promoted to staging or production.
-
-## Build and deploy
-
-```sh
+```bash
+# 透過 Docker Compose 建置並啟動服務
 docker compose -f infra/docker-compose.yml build --pull
 docker compose -f infra/docker-compose.yml up -d
+
+# 檢查健康狀態
 curl -fsS http://127.0.0.1:8080/healthz
 curl -fsS http://127.0.0.1:8081/healthz
 curl -fsS http://127.0.0.1:8081/readyz
 ```
 
-For production, build the two images from the repository root, scan and sign
-them, pin the image digest, and deploy with:
+---
 
-- API `FACILITATOR_RUNTIME_MODE=production` and a supplied adapter module.
-- API readiness gated on `/readyz`; liveness uses `/healthz`.
-- frontend liveness gated on `/healthz`.
-- a private API listener behind the ingress and an allowlisted frontend
-  origin.
-- rolling deployment only after nonce-store migrations and a reconciliation
-  check have completed.
+## 3. 生產環境部署檢核清單 (Production Deployment Checklist)
 
-The API wrapper intentionally reports readiness failure when a production
-adapter is missing. This prevents an apparently healthy process from being
-used without its signing and settlement dependencies.
+1. **環境變數安全注入**：
+   - 生產金鑰與連線字串必須透過 AWS Secrets Manager、GCP Secret Manager 或 Vault 注入，**嚴禁提交至 Git 或寫死於 Dockerfile**。
+2. **生產級簽章介面 (`FACILITATOR_ADAPTER_MODULE`)**：
+   - 生產環境必須接入硬體安全模組（Cloud KMS / HSM）或多簽金庫，嚴禁使用明文私鑰。
+3. **健康檢查門禁**：
+   - 存活性檢查（Liveness）：使用 `/healthz`（僅檢查行程存活，不發起 RPC）。
+   - 就緒性檢查（Readiness）：使用 `/readyz`（確認資料庫、KMS 與 RPC 連線正常）。
+4. **滾動更新 (Rolling Update)**：
+   - 必須於 Nonce 儲存庫遷移完成並確認無待對帳交易後，方可執行版本滾動更新。
 
-## Container and host hardening
+---
 
-- Both images run as non-root users. Keep `read_only` filesystems,
-  `no-new-privileges`, dropped Linux capabilities, and small writable `tmpfs`
-  mounts enabled.
-- Pin base image versions and rebuild for security updates. Generate an SBOM
-  and retain image scan results with the release record.
-- Set CPU, memory, file-descriptor, and request timeouts at the ingress and
-  workload level. Keep the facilitator body limit at 1 MiB unless a reviewed
-  change updates the threat model and tests.
-- Egress allowlist the RPC, KMS/HSM, telemetry, and approved trust-registry
-  endpoints. Deny arbitrary outbound connections from the frontend.
-- Use a separate service account per environment. No shell access or broad
-  cloud permissions are required by the frontend.
+## 4. 容器與主機安全性加固 (Security Hardening)
 
-## Health, telemetry, and alerts
+- **非 Root 使用者運行**：所有映像檔強制以 `non-root` 身份執行。
+- **唯讀檔案系統 (`read_only: true`)**：除必要的暫存目錄（`tmpfs`）外，容器根檔案系統一律設定為唯讀。
+- **最小權限原則**：關閉 `no-new-privileges`，移除不必要的 Linux Capabilities。
+- **請求大小限制**：Facilitator 請求本文上限強制設為 `1 MiB`，防止記憶體耗盡攻擊。
+- **出口白名單 (Egress Filtering)**：僅允許連線至核准之 Base Sepolia RPC 節點、KMS 與威脅情資伺服器。
 
-`/healthz` is liveness only and must not perform an RPC call. `/readyz` is the
-readiness gate and must be false until the production adapter and durable
-stores are available. Alert on readiness failures, signature/verification
-failures, nonce-store errors, repeated 4xx/5xx responses, rate-limit rejects,
-unknown settlement outcomes, and reconciliation backlog.
+---
 
-Log structured event IDs, tenant ID, request correlation ID, idempotency key
-hash, policy decision, and settlement status. Never log authorization payloads,
-signatures, bearer tokens, cookies, private material, or raw merchant prompts.
+## 5. 監控指標與警報策略 (Monitoring & Alerts)
 
-## Timeout reconciliation
+| 監控項目 | 觸發警報條件 | 應變處置措施 |
+| :--- | :--- | :--- |
+| **就緒性失效 (`/readyz`)** | 連續 3 次探測失敗 | 檢查 RPC 節點延遲與 KMS 連線狀態 |
+| **政策大量阻斷 (Deny Spike)** | 1 分鐘內阻斷次數 > 50 次 | 調閱 STIX 2.1 情資日誌，確認是否遭受分散式注入攻擊 |
+| **Nonce 重複衝突** | 1 分鐘內出現 > 5 次 409 Conflict | 檢查是否有異常 Agent 在進行並發雙花或重放攻擊 |
+| **超時未知交易 (`UNKNOWN`)** | 出現未決對帳交易 | 啟動對帳工作（Reconciliation Worker）查驗鏈上最終狀態 |
 
-An RPC submit or confirmation timeout is an `unknown` outcome. It is not a
-safe failure and must not be retried automatically with the same authorization
-or nonce. Persist the idempotency key and nonce before submission, query the
-transaction provider using a separately authorized reconciler, and resolve to
-`settled` or `rejected` only after evidence is sufficient. Keep unknown records
-visible to operations and block duplicate settlement while reconciliation is
-pending.
+---
 
-## Incident response
+## 6. 超時對帳與異常復原 (Timeout Reconciliation)
 
-1. Declare the incident, preserve correlation IDs and audit-chain evidence, and
-   record the first known time window.
-2. Disable the affected tenant, merchant, route, signer, or API credential at
-   the narrowest boundary. Stop settlement traffic before rotating material.
-3. Freeze automated retries and reconcile all `unknown` outcomes against the
-   chain/RPC source of truth.
-4. Rotate or revoke compromised credentials in KMS/HSM and the cloud IAM layer;
-   do not paste secrets into tickets or chat.
-5. Scope affected tenants and transactions from immutable audit records,
-   notify the incident owner and required stakeholders, then preserve a
-   read-only copy for investigation.
-6. Restore from a known-good image/configuration, run the security checklist,
-   and document root cause, indicators, containment, and follow-up controls.
-
-See [`SECURITY.md`](../SECURITY.md) for the release gate and control checklist.
+當發送 RPC 廣播遇到網路逾時，該筆交易狀態會被標記為 `UNKNOWN`：
+1. **絕不自動發起重試**：防止因延遲確認引發重複付款。
+2. **鎖定 Nonce**：在鏈上狀態未明確前，該 Nonce 禁止被其他任務使用。
+3. **對帳程序**：後台 Reconciler 透過獨立查詢節點查驗該 Hash 是否上鏈，確認後方可更新為 `SETTLED` 或 `REJECTED` 並解鎖預算。

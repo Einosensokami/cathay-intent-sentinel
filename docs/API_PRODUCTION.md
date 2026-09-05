@@ -1,26 +1,28 @@
-# IntentSentinel authenticated API/BFF boundary
+# IntentSentinel 生產級 API 與 BFF 邊界規範 (API Specification)
 
-This package is the production boundary for a tenant-scoped HTTP API. It is
-implemented in `packages/api` and intentionally does not change the existing
-facilitator, frontend, or root workspace configuration.
+本文件定義 `packages/api` 實作之生產級多租戶（Tenant-scoped）HTTP API 與 BFF 邊界規範。
 
-## Routes
+---
 
-| Method | Route | Access |
-| --- | --- | --- |
-| GET | `/healthz` | public liveness |
-| GET | `/readyz` | public dependency readiness |
-| POST | `/api/v1/verify` | `agent`, `operator`, `auditor` |
-| POST | `/api/v1/settle` | `agent`, `operator` |
-| GET | `/api/v1/events` | `operator`, `auditor` |
+## 1. 路由清單 (Routes & Access Matrix)
 
-Protected requests require `Authorization: Bearer <token>`. The default
-development verifier reads `INTENT_SENTINEL_DEV_BEARER_TOKEN`; if it is absent,
-all protected requests fail closed. It is a development adapter, not a JWT
-implementation. Production injects a `BearerTokenVerifier` backed by the
-organization's OIDC/JWT or mTLS boundary.
+| HTTP 方法 | 路由路徑 | 權限要求 | 說明 |
+| :--- | :--- | :--- | :--- |
+| **GET** | `/healthz` | 公開 (Public) | 存活狀態檢查（Liveness Check） |
+| **GET** | `/readyz` | 公開 (Public) | 相依服務就緒檢查（Readiness Check） |
+| **POST** | `/api/v1/verify` | `agent`, `operator`, `auditor` | 唯讀驗證 x402 支付簽章與政策相容性 |
+| **POST** | `/api/v1/settle` | `agent`, `operator` | 執行結算並廣播 ERC-3009 授權交易 |
+| **GET** | `/api/v1/events` | `operator`, `auditor` | SSE / 串流審計日誌與遙測事件廣播 |
 
-Every protected command includes an authenticated tenant boundary:
+---
+
+## 2. 身份驗證與租戶隔離 (Authentication & Tenancy)
+
+受保護之 API 請求必須攜帶 `Authorization: Bearer <token>` 標頭。
+- **預設開發驗證器**：讀取 `INTENT_SENTINEL_DEV_BEARER_TOKEN`；若未配置則一律 Fail-Closed 拒絕連線。
+- **生產環境對接**：透過 `BearerTokenVerifier` 介面無縫串接企業 OIDC、JWT 或 mTLS 邊界網關。
+
+所有請求均強制封裝租戶範圍（Tenant Boundary）：
 
 ```json
 {
@@ -29,11 +31,11 @@ Every protected command includes an authenticated tenant boundary:
   "paymentIntent": {
     "paymentIntentId": "pi_01JABCDEF1234567",
     "tenantId": "tenant-cathay",
-    "taskId": "task-123",
-    "resource": "https://merchant.example/resource",
-    "payee": "0x0000000000000000000000000000000000000002",
-    "maxAmount": "1000000",
-    "asset": "0x0000000000000000000000000000000000000001",
+    "taskId": "task-security-recon",
+    "resource": "https://api.merchant.com/reports/vip",
+    "payee": "0x1111111111111111111111111111111111111111",
+    "maxAmount": "10000",
+    "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
     "network": "eip155:84532",
     "expiresAt": 1900000000
   },
@@ -42,85 +44,66 @@ Every protected command includes an authenticated tenant boundary:
     "accepted": {
       "scheme": "exact",
       "network": "eip155:84532",
-      "amount": "1000",
-      "asset": "0x0000000000000000000000000000000000000001",
-      "payTo": "0x0000000000000000000000000000000000000002",
+      "amount": "10000",
+      "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "payTo": "0x1111111111111111111111111111111111111111",
       "maxTimeoutSeconds": 300
     },
     "payload": {
       "authorization": {
-        "from": "0x0000000000000000000000000000000000000003",
-        "to": "0x0000000000000000000000000000000000000002",
-        "value": "1000",
+        "from": "0x14791697260E4c9A71f18484C9f997B308e59325",
+        "to": "0x1111111111111111111111111111111111111111",
+        "value": "10000",
         "validAfter": "1",
         "validBefore": "1900000000",
         "nonce": "0x0000000000000000000000000000000000000000000000000000000000000001"
       },
-      "signature": "0xsignature"
+      "signature": "0x..."
     }
   },
   "paymentRequirements": {
     "scheme": "exact",
     "network": "eip155:84532",
-    "amount": "1000",
-    "asset": "0x0000000000000000000000000000000000000001",
-    "payTo": "0x0000000000000000000000000000000000000002",
+    "amount": "10000",
+    "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    "payTo": "0x1111111111111111111111111111111111111111",
     "maxTimeoutSeconds": 300
   }
 }
 ```
 
-Successful responses use `{ ok: true, requestId, correlationId, data }`.
-Boundary failures use `{ ok: false, error: { code, message, requestId,
-correlationId } }`; internal failures never expose adapter or credential
-details.
+---
 
-`paymentIntentId` and `x402Id` are API-owned stable identifiers. They are
-opaque, non-empty identifiers and should be persisted by clients; they are not
-generated from a bearer token or request ID. Runtime validation also binds
-asset, network, payee, amount, expiry, x402 version, accepted requirements,
-and the ERC-3009 32-byte nonce.
+## 3. 回應規格與錯誤封裝 (Response Format)
 
-## Settlement and replay rules
+- **成功回應**：
+  ```json
+  {
+    "ok": true,
+    "requestId": "req_01JABCDEF1234567",
+    "correlationId": "corr_01JABCDEF1234567",
+    "data": { /* 業務資料或結算憑證 */ }
+  }
+  ```
+- **錯誤回應**（絕不洩漏內部私鑰、資料庫連線或底層例外細節）：
+  ```json
+  {
+    "ok": false,
+    "error": {
+      "code": "POLICY_DENIED",
+      "message": "Payment blocked by the IntentSentinel policy gate",
+      "requestId": "req_01JABCDEF1234567",
+      "correlationId": "corr_01JABCDEF1234567"
+    }
+  }
+  ```
 
-`POST /api/v1/settle` requires an ASCII `Idempotency-Key` header. The key is
-scoped to `(tenantId, principal.subject)` and is bound to a canonical SHA-256
-hash of the request. Reusing it for another request returns `409
-idempotency_conflict`; replaying the same request returns the original result
-with `Idempotency-Replayed: true`.
+---
 
-The injected `ReplayProtector` atomically claims the tenant/nonce pair before
-settlement. Rejected settlement releases the claim. A settled or unknown
-outcome retains it. An adapter exception also retains the claim because an
-external transaction may have been broadcast; operators must reconcile the
-idempotency record before retrying.
+## 4. 冪等性與重放保護規則 (Idempotency & Replay Rules)
 
-## Adapter boundary
-
-`ApiAdapters` provides four injectable seams:
-
-- `FacilitatorAdapter` maps to the existing Facilitator's verification and
-  settlement methods.
-- `PolicyAdapter` is the independent allow/deny boundary.
-- `KeyVaultAdapter` reports custody readiness; signing remains outside this
-  package.
-- `EventAdapter` provides already-redacted, tenant-scoped audit events.
-
-The default adapters are safe mocks. Their responses say `mode: "mock"`,
-`simulated: true`, and explain that no signature, balance, policy engine,
-external event store, chain transaction, or funds movement was performed.
-Replace them at construction time for production.
-
-An explorer URL is emitted only when an adapter explicitly attests
-`verifiedLive: true`, reports `mode: "live"` and `simulated: false`, supplies a
-64-hex `0x` transaction hash, and supplies a matching HTTPS URL. Mock IDs such
-as `mock:<uuid>` can never produce a Basescan URL. The BFF never invents a URL.
-
-## Operational controls
-
-The boundary has a 256 KiB default request-body limit, an injectable rate
-limiter, exact allowlisted CORS origins (no wildcard default), JSON error
-envelopes, request/correlation IDs, and conservative security headers. The
-default in-memory stores are process-local and are suitable only for local
-development or tests; production should inject shared durable idempotency and
-replay stores and a distributed rate limiter.
+- `POST /api/v1/settle` 強制要求攜帶 `Idempotency-Key` 標頭。
+- 冪等鍵範圍綁定 `(tenantId, principal.subject)` 與請求本文的 SHA-256 雜湊。
+- **重複調用相同請求**：回傳原始結算結果，並帶上標頭 `Idempotency-Replayed: true`。
+- **重複使用相同 Key 於不同請求**：回傳 `409 idempotency_conflict` 阻斷。
+- **超時與未知狀態**：若發生上游逾時，狀態標記為 `UNKNOWN`，該 Nonce 維持鎖定，嚴禁盲目重放扣款。
