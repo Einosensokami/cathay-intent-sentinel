@@ -1,0 +1,31 @@
+{
+  "name": "@cathay/intent-sentinel-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "sentinel-agent": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/server.js",
+    "cli": "node dist/cli.js"
+  },
+  "dependencies": {
+    "@cathay/intent-sentinel-core": "0.1.0",
+    "@cathay/intent-sentinel-key-vault": "0.1.0",
+    "@intent-sentinel/agent-client": "0.1.0",
+    "@intent-sentinel/policy-engine": "0.1.0",
+    "@modelcontextprotocol/sdk": "^1.17.5",
+    "zod": "^4.5.4"
+  }
+}
