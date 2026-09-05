@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FlaskConical, LayoutDashboard, ShieldCheck, SlidersHorizontal } from "lucide-react";
+import { FlaskConical, LayoutDashboard, ShieldCheck, SlidersHorizontal, Store } from "lucide-react";
 import { ApiError, createApiClient, createCorrelationId, getRuntimeConfig, type SettleResponse, type VerifyRequest } from "./api/client";
 import { isVerifiedLiveSettlement, safeExplorerUrl } from "./api/evidence";
 import { Header } from "./components/Header";
@@ -9,6 +9,7 @@ import { LeftPanel } from "./components/LeftPanel";
 import { PolicyInspector } from "./components/PolicyInspector";
 import { RightPanel } from "./components/RightPanel";
 import { SecurityAuditView } from "./components/SecurityAuditView";
+import { MarketplaceView } from "./components/MarketplaceView";
 import { StixModal } from "./components/StixModal";
 import { TxReceiptModal } from "./components/TxReceiptModal";
 import type { PolicyState } from "./components/PolicyInspector";
@@ -22,9 +23,10 @@ const clock = () => new Intl.DateTimeFormat("zh-TW", { hour: "2-digit", minute: 
 
 interface RunContext { correlationId: string; idempotencyKey: string; }
 interface PolicyEvaluation { scenario: Scenario; blocked: boolean; reason: string; owaspDetected: boolean; amount: number; merchant: string; resource: string; }
-type WorkspaceTab = "live" | "playground" | "policy" | "security";
+type WorkspaceTab = "marketplace" | "live" | "playground" | "policy" | "security";
 
 const workspaceTabs = [
+  { id: "marketplace" as const, icon: Store, label: "🏪 虛擬數據市集", shortLabel: "數據市集", english: "x402 Marketplace" },
   { id: "live" as const, icon: LayoutDashboard, label: "🛰️ 即時哨兵與支付管線", shortLabel: "即時哨兵", english: "Live Sentinel" },
   { id: "playground" as const, icon: FlaskConical, label: "🧪 自訂 Intent 測試沙盒", shortLabel: "Intent 沙盒", english: "Intent Playground" },
   { id: "policy" as const, icon: SlidersHorizontal, label: "🎛️ CFO 政策與金庫設定", shortLabel: "CFO 政策", english: "Policy & Treasury" },
@@ -32,7 +34,7 @@ const workspaceTabs = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<WorkspaceTab>("live");
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>("marketplace");
   const [mode, setMode] = useState<"mock" | "live">(import.meta.env.VITE_EXECUTION_MODE === "live" ? "live" : "mock");
   const [connection, setConnection] = useState<"connected" | "connecting" | "offline">(mode === "mock" ? "connected" : "connecting");
   const [runState, setRunState] = useState<RunState>("idle");
@@ -48,6 +50,7 @@ export default function App() {
   const [policy, setPolicy] = useState<PolicyState>({ perTxCap: 1, strictAllowlist: true, owaspProtection: true, owaspLevel: "strict" });
   const [activeCorrelationId, setActiveCorrelationId] = useState<string | null>(null);
   const [lastRunCustom, setLastRunCustom] = useState(false);
+  const [marketplaceDefending, setMarketplaceDefending] = useState(false);
   const runToken = useRef(0);
   const retryContext = useRef<RunContext | null>(null);
   const retryIntent = useRef<CustomIntent | null>(null);
@@ -161,7 +164,7 @@ export default function App() {
     if (scenario && retryContext.current) void run(scenario, retryContext.current, retryIntent.current ?? undefined);
   }, [run, scenario]);
 
-  const defending = runState === "blocked";
+  const defending = runState === "blocked" || marketplaceDefending;
   return <div className="min-h-screen bg-cyber text-slate-300">
     <div className="ambient-grid" aria-hidden="true" />
     <Header balance={balance} defending={defending} mode={mode} connection={connection} onModeChange={switchMode} liveConfigured={runtime.liveConfigured} />
@@ -169,6 +172,7 @@ export default function App() {
       <div className="workspace-hero"><div><p>Treasury workspace / Intent control plane</p><h1>每個意圖，都必須通過財務邊界。</h1></div><p>推理代理提出方案，IntentSentinel 作出決策；只有通過政策的 payload 才能進入簽署邊界。</p></div>
       <nav className="workspace-tabs" role="tablist" aria-label="IntentSentinel 工作區">{workspaceTabs.map(({ id, icon: Icon, label, shortLabel, english }) => <button key={id} type="button" id={`tab-${id}`} role="tab" aria-selected={activeTab === id} aria-controls={`panel-${id}`} className={activeTab === id ? "active" : ""} onClick={() => setActiveTab(id)}><Icon size={17} /><span><strong>{label}</strong><small>{english}</small></span><em>{shortLabel}</em>{id === "security" && threat && <i aria-label="有新的威脅事件" />}</button>)}</nav>
       {error && <ErrorBanner error={error} onRetry={runState === "failed" || runState === "unknown" ? retry : undefined} />}
+      <section id="panel-marketplace" role="tabpanel" aria-labelledby="tab-marketplace" hidden={activeTab !== "marketplace"} className="workspace-panel"><MarketplaceView balance={balance} spent={spent} owaspActive={policy.owaspProtection} stixAlerts={threat ? 4 : 3} onSettled={(amount) => { setBalance((value) => value - amount); setSpent((value) => value + amount); }} onRiskStateChange={setMarketplaceDefending} /></section>
       <section id="panel-live" role="tabpanel" aria-labelledby="tab-live" hidden={activeTab !== "live"} className="workspace-panel"><ViewHeading eyebrow="01 / Live Sentinel" title="即時哨兵與支付管線" description="以單一決策視角監看代理請求、政策閘門、結算證據與當前威脅。" /><div className="live-layout"><LeftPanel runState={runState} activeScenario={scenario} steps={steps} onRun={(value) => void run(value)} mode={mode} connection={connection} correlationId={activeCorrelationId} /><RightPanel spent={spent} transactions={transactions} threat={threat} policy={policy} onInspectTx={setSelectedTx} onInspectThreat={setSelectedThreat} /></div></section>
       <section id="panel-playground" role="tabpanel" aria-labelledby="tab-playground" hidden={activeTab !== "playground"} className="workspace-panel"><ViewHeading eyebrow="02 / Intent Playground" title="自訂 Intent 測試沙盒" description="為評審與測試者提供完整輸入面板，送出前即可看到政策判定。" /><IntentPlayground policy={policy} runState={runState} steps={steps} correlationId={activeCorrelationId} isCurrentRun={lastRunCustom} onRunCustom={runCustom} onOpenLive={() => setActiveTab("live")} evaluate={(intent) => evaluateCustomIntent(intent, policy)} /></section>
       <section id="panel-policy" role="tabpanel" aria-labelledby="tab-policy" hidden={activeTab !== "policy"} className="workspace-panel"><ViewHeading eyebrow="03 / Policy & Treasury" title="CFO 政策與金庫設定" description="集中調整授權上限、商戶邊界與 OWASP Agentic Security 防禦等級。" /><div className="treasury-overview"><div><span>可用金庫餘額</span><strong>${balance.toLocaleString("en-US", { minimumFractionDigits: 2 })}</strong><small>USDC · Base Sepolia</small></div><div><span>目前 Per-Tx Cap</span><strong>${policy.perTxCap.toFixed(3)}</strong><small>同步至全域政策狀態</small></div><BudgetGauge spent={spent} /></div><PolicyInspector defending={defending} policy={policy} onPolicyChange={(change) => setPolicy((current) => ({ ...current, ...change }))} /></section>
