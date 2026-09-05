@@ -186,7 +186,7 @@ args = ["/path/to/cathay-intent-sentinel/packages/mcp-server/dist/cli.js", "mcp"
 
 | 姓名 | 分工 |
 | --- | --- |
-| **Einosensokami** | 專案架構設計、核心密碼學與風控閘門開發、MCP Server/市集實作、Demo 演示與文檔撰寫 |
+| **永恆戰神** | 專案架構設計、核心密碼學與風控閘門開發、MCP Server/市集實作、Demo 演示與文檔撰寫 |
 
 ---
 
