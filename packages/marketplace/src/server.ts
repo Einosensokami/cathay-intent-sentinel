@@ -249,7 +249,7 @@ export function createMarketplaceServer(options: MarketplaceServerOptions = {}):
       json(response, 405, { error: "Method Not Allowed" }, { allow: "GET" });
       return;
     }
-    if (pathname === "/health") {
+    if (pathname === "/health" || pathname === "/healthz") {
       json(response, 200, {
         status: "ok",
         marketplace: MARKETPLACE_NAME,
@@ -281,13 +281,30 @@ export function createMarketplaceServer(options: MarketplaceServerOptions = {}):
     let payment: PaymentPayload;
     try {
       payment = decodePaymentPayload(encodedPayment);
-    } catch (error) {
-      json(response, 402, { error: "invalid_payment", message: error instanceof Error ? error.message : "Malformed payment" }, {
-        "PAYMENT-REQUIRED": encodePaymentRequired(quote),
-      });
-      return;
+    } catch {
+      try {
+        const decoded = JSON.parse(Buffer.from(encodedPayment.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf-8")) as Record<string, unknown>;
+        const rawPayload = (decoded.payload as Record<string, unknown> | undefined) ?? {
+          authorization: decoded.authorization,
+          signature: decoded.signature,
+        };
+        const resObj = typeof decoded.resource === "string" ? { url: decoded.resource } : (decoded.resource as { url: string } | undefined) ?? { url: resource };
+        payment = {
+          x402Version: 2,
+          resource: resObj,
+          accepted: decoded.accepted as PaymentRequirements,
+          payload: rawPayload as unknown as PaymentPayload["payload"],
+        };
+      } catch (error) {
+        json(response, 402, { error: "invalid_payment", message: error instanceof Error ? error.message : "Malformed payment" }, {
+          "PAYMENT-REQUIRED": encodePaymentRequired(quote),
+        });
+        return;
+      }
     }
-    if (paymentResource(payment) !== resource) {
+    const payRes = paymentResource(payment);
+    const resourceMatched = payRes === resource || (payRes && new URL(payRes).pathname === new URL(resource).pathname);
+    if (!resourceMatched) {
       json(response, 402, { error: "invalid_payment", message: "Payment resource does not match the requested dataset" }, {
         "PAYMENT-REQUIRED": encodePaymentRequired(quote),
       });

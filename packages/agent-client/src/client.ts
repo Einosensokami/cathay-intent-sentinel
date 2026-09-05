@@ -302,17 +302,22 @@ function signedToPayload(
     });
   }
   return {
+    x402Version: 2,
     version: 2,
     resource,
     accepted: requirement,
     authorization,
     signature: signed.signature,
+    payload: {
+      authorization,
+      signature: signed.signature,
+    },
     extensions: {
       ...(signed.extensions ?? {}),
       intentId: intent.intentId,
       taskId: intent.taskId,
     },
-  };
+  } as unknown as PaymentSignature;
 }
 
 /** Implements the single controlled retry permitted by x402. */
