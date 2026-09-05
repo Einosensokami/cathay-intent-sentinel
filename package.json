@@ -14,7 +14,8 @@
     "demo:a2a": "npm --workspace @intent-sentinel/demo run a2a",
     "dashboard": "npm run dev --workspace=@cathay/intent-sentinel-frontend",
     "mcp": "npm --workspace @cathay/intent-sentinel-mcp run start",
-    "agent": "npm --workspace @cathay/intent-sentinel-mcp run cli"
+    "agent": "npm --workspace @cathay/intent-sentinel-mcp run cli",
+    "marketplace": "npm --workspace @intent-sentinel/marketplace run start"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
