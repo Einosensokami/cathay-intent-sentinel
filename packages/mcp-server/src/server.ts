@@ -24,9 +24,9 @@ export function createSentinelMcpServer(runtime = new SentinelRuntime()): McpSer
 
   server.registerTool("sentinel_pay_and_fetch", {
     title: "Pay and fetch through IntentSentinel",
-    description: "Execute an x402 fetch only after the IntentSentinel policy gate approves the task, budget, merchant, and OWASP controls.",
+    description: "Execute an x402 fetch only after the IntentSentinel policy gate approves the task, budget, merchant, and OWASP controls. Supports HTTPS resources and the local marketplace at http://localhost:8402 or http://127.0.0.1:8402.",
     inputSchema: {
-      url: z.string().url(),
+      url: z.string().url().describe("HTTPS resource URL or local marketplace URL on localhost:8402"),
       taskId: z.string().min(1),
       purpose: z.string().min(1),
       maxAmountUsd: z.number().positive(),

@@ -44,6 +44,16 @@ const DEFAULT_RESOURCE = "https://intel.cathay.example/reports/ai-threats";
 const DEFAULT_PRIVATE_KEY = "0x0123456789012345678901234567890123456789012345678901234567890123" as Hex;
 const SIMULATED_PRICE_UNITS = "10000";
 
+export const LOCAL_MARKETPLACE_URL_PATTERNS = [
+  "http://localhost:8402/*",
+  "http://127.0.0.1:8402/*",
+] as const;
+
+const DEFAULT_ALLOWED_MERCHANT_URL_PATTERNS = [
+  "https://*.cathay.example/*",
+  ...LOCAL_MARKETPLACE_URL_PATTERNS,
+] as const;
+
 const SIMULATED_THREAT_REPORT = {
   stixVersion: "2.1",
   type: "bundle",
@@ -123,9 +133,17 @@ function requireTaskId(value: string): string {
   return value;
 }
 
-function requireHttps(value: string): string {
+function isLocalMarketplaceUrl(value: URL): boolean {
+  return value.protocol === "http:" &&
+    (value.hostname.toLowerCase() === "localhost" || value.hostname === "127.0.0.1") &&
+    value.port === "8402";
+}
+
+function requireResourceUrl(value: string): string {
   const url = new URL(value);
-  if (url.protocol !== "https:") throw new TypeError("Only HTTPS resource URLs are allowed");
+  if (url.protocol !== "https:" && !isLocalMarketplaceUrl(url)) {
+    throw new TypeError("Only HTTPS resource URLs or HTTP localhost:8402 marketplace URLs are allowed");
+  }
   return url.toString();
 }
 
@@ -280,7 +298,7 @@ export class SentinelRuntime {
     if (this.perCallBudgetUnits <= 0n || this.dailyBudgetUnits <= 0n) throw new RangeError("Budgets must be greater than zero");
     this.trustedPayee = options.trustedPayee ?? process.env.SENTINEL_TRUSTED_PAYEE ?? DEFAULT_PAYEE;
     this.trustedMerchantUrl = options.trustedMerchantUrl ?? process.env.SENTINEL_TRUSTED_MERCHANT_URL ?? DEFAULT_RESOURCE;
-    this.allowedMerchantUrlPatterns = options.allowedMerchantUrlPatterns ?? (process.env.SENTINEL_ALLOWED_MERCHANT_URL_PATTERNS?.split(",").map((value) => value.trim()).filter(Boolean) ?? ["https://*.cathay.example/*"]);
+    this.allowedMerchantUrlPatterns = options.allowedMerchantUrlPatterns ?? (process.env.SENTINEL_ALLOWED_MERCHANT_URL_PATTERNS?.split(",").map((value) => value.trim()).filter(Boolean) ?? DEFAULT_ALLOWED_MERCHANT_URL_PATTERNS);
     this.privateKey = options.privateKey ?? (process.env.SENTINEL_PRIVATE_KEY as Hex | undefined) ?? DEFAULT_PRIVATE_KEY;
     this.fetcher = options.fetch ?? createDefaultFetcher();
     this.trustRegistry.register({ address: this.trustedPayee, merchant_url: this.trustedMerchantUrl, reputation_score: 100 });
@@ -319,7 +337,7 @@ export class SentinelRuntime {
 
   public async evaluateIntent(input: IntentEvaluationInput): Promise<IntentEvaluationResult> {
     const taskId = requireTaskId(input.taskId);
-    const resourceUrl = requireHttps(input.resourceUrl);
+    const resourceUrl = requireResourceUrl(input.resourceUrl);
     const maxAmount = amountUsdToUnits(input.amountUsd);
     const intent: PolicyPaymentIntent = {
       task_id: taskId,
@@ -334,7 +352,7 @@ export class SentinelRuntime {
       trusted: { ...intent, merchant_url: resourceUrl },
       ...(input.promptContext !== undefined ? { untrusted: parsePromptContext(input.promptContext) } : {}),
     };
-    const gate = this.gateFor(taskId);
+    const gate = this.gateFor(taskId, resourceUrl);
     const decision = await gate.evaluate(intent, context);
     const threatReports = decision.violations.map((violation) => this.threatReporter.report({
       code: violation.code,
@@ -371,11 +389,11 @@ export class SentinelRuntime {
     maxAmountUsd: number,
     options: { onEvent?: (event: ClientEvent) => void } = {},
   ): Promise<FetchResult> {
-    const url = requireHttps(urlInput);
+    const url = requireResourceUrl(urlInput);
     const taskId = requireTaskId(taskIdInput);
     const maxAmountUnits = amountUsdToUnits(maxAmountUsd);
     if (maxAmountUnits <= 0n) throw new RangeError("maxAmountUsd must be greater than zero");
-    const gate = this.gateFor(taskId, isSimulatedCathayUrl(url) ? url : undefined);
+    const gate = this.gateFor(taskId, url);
     const policy = new PaymentPolicyAdapter(this, gate, taskId);
     const signer: PaymentSigner = {
       sign: async (intent, requirement) => {

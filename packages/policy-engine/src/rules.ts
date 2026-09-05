@@ -105,7 +105,10 @@ function matchesPattern(value: string, pattern: string): boolean {
 function validHttpUrl(value: string): boolean {
   try {
     const url = new URL(value);
-    return url.protocol === "https:";
+    if (url.protocol === "https:") return true;
+    return url.protocol === "http:" &&
+      (url.hostname.toLowerCase() === "localhost" || url.hostname === "127.0.0.1") &&
+      url.port === "8402";
   } catch {
     return false;
   }
@@ -172,7 +175,7 @@ export class ConfigurablePolicyRules {
     }
     if (intent.expires_at !== context.expires_at) violations.push({ code: "EXPIRY_MISMATCH", message: "Intent expiry does not match task context" });
     const url = merchantUrl(intent, context);
-    if (!validHttpUrl(url)) violations.push({ code: "MERCHANT_NOT_ALLOWED", message: "Merchant URL must be HTTPS" });
+    if (!validHttpUrl(url)) violations.push({ code: "MERCHANT_NOT_ALLOWED", message: "Merchant URL must be HTTPS, or HTTP localhost:8402" });
     if (!this.config.allowed_merchant_url_patterns.some((pattern) => matchesPattern(url, pattern))) {
       violations.push({ code: "MERCHANT_NOT_ALLOWED", message: "Merchant URL is not in the allowlist" });
     }

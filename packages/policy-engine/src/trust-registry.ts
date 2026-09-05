@@ -29,6 +29,18 @@ const VALIDATION_ABI = [
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const REGISTRATION_V1 = "https://eips.ethereum.org/EIPS/eip-8004#registration-v1";
 
+function isTrustedMerchantUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    if (url.protocol === "https:") return true;
+    return url.protocol === "http:" &&
+      (url.hostname.toLowerCase() === "localhost" || url.hostname === "127.0.0.1") &&
+      url.port === "8402";
+  } catch {
+    return false;
+  }
+}
+
 /** Small fixture shape retained for offline demos and deterministic tests. */
 export interface Erc8004IdentityRecord {
   agentId: string;
@@ -108,7 +120,7 @@ export class InMemoryTrustRegistry implements TrustRegistry {
     const identity = record.identity ?? { address: record.address ?? "", merchant_url: record.merchant_url ?? "" };
     const reputation = record.reputation ?? { score: record.reputation_score ?? 0, successful_settlements: 0, disputes: 0, last_updated: 0 };
     const address = getAddress(identity.address).toLowerCase();
-    if (!/^https:\/\//i.test(identity.merchant_url)) throw new TypeError("Merchant URL must use HTTPS");
+    if (!isTrustedMerchantUrl(identity.merchant_url)) throw new TypeError("Merchant URL must be HTTPS, or HTTP localhost:8402");
     if (!Number.isFinite(reputation.score) || reputation.score < 0 || reputation.score > 100) {
       throw new TypeError("Reputation score must be between 0 and 100");
     }
