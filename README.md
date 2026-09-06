@@ -147,7 +147,9 @@ args = ["/path/to/cathay-intent-sentinel/packages/mcp-server/dist/cli.js", "mcp"
 ## 作品展示
 
 - **Web 控制台展示網址**：https://cathay-intent-sentinel.netlify.app/
-- **評選影片**：*（錄製完成後附上影片連結）*
+- **評選 Demo 影片**：[YouTube 完整演示影片](https://www.youtube.com/watch?v=nMnNDm5N0oI)（`https://www.youtube.com/watch?v=nMnNDm5N0oI`）
+
+[![Cathay IntentSentinel Demo Video](https://img.youtube.com/vi/nMnNDm5N0oI/maxresdefault.jpg)](https://www.youtube.com/watch?v=nMnNDm5N0oI)
 
 ### 📸 演示亮點預覽
 - **正常採購情境**：Codex 呼叫 `/api/vip-threat-intel` ➜ 毫秒級通過 CFO 政策 ➜ 隔離簽章 ➜ 解鎖 VIP 研報與 ERC-3009 交易收據。
