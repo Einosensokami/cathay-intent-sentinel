@@ -175,10 +175,13 @@ args = ["/path/to/cathay-intent-sentinel/packages/mcp-server/dist/cli.js", "mcp"
 | 項目 | 來源 / 連結 | 授權方式 | 用途說明 |
 | --- | --- | --- | --- |
 | **Viem** | https://viem.sh | MIT | EIP-712 結構化數據編碼與 Secp256k1 密碼學簽章 |
+| **Ethers.js** | https://ethers.org | MIT | Base Sepolia 智能合約互動、RPC 通訊與鏈上結算 |
 | **Model Context Protocol SDK** | https://modelcontextprotocol.io | MIT | 實作標準 Agent MCP Tool 介面 |
+| **React 19 & React-DOM** | https://react.dev | MIT | 視覺化控制台前端核心組件渲染 |
 | **Lucide Icons** | https://lucide.dev | ISC | 前端視覺化控制台圖示素材 |
+| **Tailwind CSS & Vite** | https://tailwindcss.com / https://vite.dev | MIT | 前端快速打包與 Cyber-Fintech 樣式系統 |
+| **Zod** | https://zod.dev | MIT | MCP 工具參數與執行期 Schema 嚴格型別校驗 |
 | **OASIS STIX 2.1 Spec** | https://oasis-open.github.io/cti-documentation/ | OASIS Open | 威脅情資結構定義標準 |
-| **Tailwind CSS & Vite** | https://tailwindcss.com / https://vite.dev | MIT | 前端快速打包與樣式系統 |
 
 *本專案未包含任何真實私鑰、個人敏感資料或未授權商業素材。*
 
